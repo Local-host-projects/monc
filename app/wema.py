@@ -75,6 +75,7 @@ class AccountResult:
     valid: bool
     account_name: str
     provider_reference: str
+    city: str = ""
 
 
 @dataclass
@@ -156,6 +157,7 @@ class WemaGateway:
 SANDBOX_CONSENTS: dict = {}
 SANDBOX_TRANSFERS: dict = {}
 SANDBOX_HISTORY: list = []
+SANDBOX_CITIES = ["lagos", "abuja", "port harcourt", "ibadan", "kano", "enugu"]
 
 
 def _sbx_digest(*parts: str) -> str:
@@ -170,7 +172,11 @@ class SandboxWemaGateway(WemaGateway):
     def account_name_enquiry(self, account_number: str) -> AccountResult:
         valid = account_number.isdigit() and len(account_number) == 10
         suffix = account_number[-4:] if valid else ""
-        return AccountResult(valid, f"MONC SANDBOX BUSINESS {suffix}" if valid else "", f"wema_sbx_{suffix}")
+        city = ""
+        if valid:
+            seed = int(_sbx_digest("account", account_number)[:8], 16)
+            city = SANDBOX_CITIES[seed % len(SANDBOX_CITIES)]
+        return AccountResult(valid, f"MONC SANDBOX BUSINESS {suffix}" if valid else "", f"wema_sbx_{suffix}", city)
 
     def get_all_banks(self) -> list:
         return [

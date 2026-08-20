@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONC · about & how it verifies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<script>(function(){try{var t=localStorage.getItem('moncTheme');document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){document.documentElement.dataset.theme='dark'}})();</script>
+</head>
+<body>
+<main class="wrap">
+  <header class="topbar">
+    <b class="brand">MONC</b>
+    <span class="descriptor">ABOUT · CONTROLLED AUTHORIZATION</span>
+    <span class="grow"></span>
+    <span class="clock"></span>
+    <button class="iconbtn theme" type="button" aria-label="Toggle light or dark theme">◐</button>
+  </header>
+  <nav class="nav">
+    <a href="/">HOME</a><a href="/app">ACCOUNT</a><a class="active" href="/about">ABOUT</a>
+  </nav>
+
+  <section class="hero">
+    <div class="eyebrow">// WHAT MONC IS · HOW IT VERIFIES · WHY IT FAILS CLOSED</div>
+    <h1>SPENDING THAT<br>CAN ONLY SAY YES</h1>
+    <p>MONC lets an owner delegate payment without handing over unlimited trust. A merchant or an AI agent proposes one <b>exact</b> transaction. The owner reviews it, proves ownership from their own device, and MONC settles it — but only if every condition can be confirmed from a <b>authoritative source, right now</b>.</p>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>The one tenet</b><span>MINIMIZE INPUT · COLLECT FROM THE SOURCE</span></div>
+    <div class="pb">
+      <div class="callout ok"><b>Design rule</b>Minimize data entry from both parties and collect directly from the sources in the most definitive / authoritative way.</div>
+      <p>Neither the customer nor the merchant should have to type facts that a trusted system already holds. The customer never types the merchant's name or city. The merchant never types the customer's details. MONC pulls each condition from the record that is authoritative for it:</p>
+      <ul style="line-height:1.9">
+        <li><b>Amount, currency, product, category, domain</b> — from the payment intent ledger, written by the merchant's own API and never typed by the customer at checkout.</li>
+        <li><b>Merchant identity and city</b> — re-checked live at the bank (account enquiry / branch record) at authorization time, not trusted from an onboarding form.</li>
+        <li><b>Consent</b> — polled live from the bank during the consent hop; MONC never imagines an approval.</li>
+      </ul>
+      <p>The verification harness below is the machine that runs those checks. Every check carries its source and a timestamp, and anything that can't be confirmed <b>fails closed</b> — no authorization, no settlement.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>Verification sources</b><span>LIVE SOURCE MAP</span></div>
+    <div class="pb">
+      <div id="sourceList" class="vlist"><span class="hint">Loading live source map…</span></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>How a payment moves</b><span>CHECK · CONSENT · SETTLE</span></div>
+    <div class="pb">
+      <ol class="steps" style="flex-direction:column;gap:6px">
+        <li class="done"><b>1 · Proposal</b>The merchant sends an exact payment intent: fixed amount, product, domain.</li>
+        <li class="done"><b>2 · Ownership proof</b>The owner decrypts their token from their own device and signs the exact transaction context — the private key never leaves the browser.</li>
+        <li class="done"><b>3 · Live verification</b>Every policy condition is re-checked from its authoritative source right now.</li>
+        <li class="done"><b>4 · Policy</b>The owner's compiled rules decide yes or no. Anything unverifiable fails closed.</li>
+        <li class="done"><b>5 · Consent</b>ALAT Authenticator gets the exact debit for approval; MONC polls the bank.</li>
+        <li class="done"><b>6 · Settlement</b>Wema credits the merchant wallet; the ledger records it once, idempotently.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>Running the harness</b><span>VERIFY IN REAL TIME</span></div>
+    <div class="pb">
+      <p>The same pipeline the checkout uses is exposed as a tool:</p>
+      <div class="callout"><b>In the app</b>The Account console verifies your instruments and rules before they are used. The checkout shows you each live check and where the value came from.</div>
+      <div class="callout"><b>From the API</b><code>GET /api/verify/sources</code> lists the authoritative source map. <code>POST /api/verify/run</code> runs the checks for a payment intent (or a sandbox sample) and returns per-condition verdicts with provenance.</div>
+      <div class="callout"><b>From the terminal</b><code>python scripts/verify_harness.py</code> prints the report. <code>python scripts/verify_harness.py --fail-source</code> proves that a source outage fails closed instead of authorizing.</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>Prototype boundary</b><span>DEMO MODE</span></div>
+    <div class="pb">
+      <p>This deployment runs in <b>sandbox</b> mode: Wema calls are deterministic and in-memory, and card details are encrypted in this browser — never test with a real card. In production the gateway uses live Wema / ALAT credentials, a PCI tokenization provider, and server-side key management. The verification harness and fail-closed rules are exactly the same code path.</p>
+      <div class="form-actions">
+        <a class="btn primary" href="/app">OPEN YOUR ACCOUNT →</a>
+        <a class="btn" href="/merchant">MERCHANT CONSOLE</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot"><span>MONC · CONTROLLED AUTHORIZATION · FAIL CLOSED</span><span><a href="/">HOME</a> · <a href="/app">ACCOUNT</a> · <a href="/about">ABOUT</a></span></footer>
+</main>
+<script src="/static/app.js"></script>
+<script>
+(function(){
+  fetch('/api/verify/sources', {credentials:'include'})
+    .then(r => r.json())
+    .then(d => {
+      const list = document.getElementById('sourceList');
+      list.innerHTML = Object.entries(d.sources || {}).map(([key, note]) =>
+        `<div class="vrow"><span class="vicon">◉</span><span><b>${key}</b><br>${note}</span></div>`).join('');
+    })
+    .catch(() => { document.getElementById('sourceList').innerHTML = '<div class="empty">Source map unavailable.</div>'; });
+})();
+</script>
+</body>
+</html>

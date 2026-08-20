@@ -1,1 +1,75 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MONC · controlled authorization</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/static/app.css"></head><body><main class="wrap"><header class="topbar"><b class="brand">MONC</b><span class="descriptor">CONTROLLED AUTHORIZATION FOR THIRD-PARTY SPENDING · v0.1</span><span class="grow"></span><span class="clock">--:--:-- UTC</span><button class="iconbtn theme" type="button">◐</button></header><nav class="nav"><a class="active" href="/">HOME</a><a href="/app">CUSTOMER</a><a href="/merchant">MERCHANT</a></nav><section class="hero"><div class="eyebrow">// THE PAYMENT INSTRUMENT THAT CAN SAY NO</div><h1>MONEY WITH<br>RULES INSIDE</h1><p>MONC lets an owner delegate payment without delegating unlimited trust. A merchant or AI agent proposes a <b>specific</b> transaction. MONC verifies the merchant, the product, the amount, the context, the delegation, and the owner’s policy before authorization.</p><div class="actions"><a class="btn primary" href="/app">OPEN CUSTOMER CONSOLE →</a><a class="btn" href="/merchant">OPEN MERCHANT CONSOLE</a></div></section><section class="panel"><div class="ph"><b>What MONC verifies</b><span>OWNER POLICY · MERCHANT CONTEXT · THIRD-PARTY REQUEST</span></div><div class="grid g3"><div class="stat"><strong>01</strong><small>WHO is proposing the spend — a person, agent, or checkout</small></div><div class="stat"><strong>02</strong><small>WHAT is being bought — product, category, code, and basket</small></div><div class="stat"><strong>03</strong><small>WHETHER it fits the owner’s compiled rules and limits</small></div></div></section><section class="panel"><div class="ph"><b>Security position</b><span>DEMO BOUNDARIES ARE VISIBLE</span></div><div class="pb"><div class="notice"><b>Client-side card protection:</b> the card package is encrypted in the browser and exported in a transferable QR token. MONC does not receive PAN or CVV. Production card charging still requires a PCI-compliant processor or bank tokenization partner.</div><div class="grid g2" style="margin-top:16px"><div><div class="eyebrow">OWNER HOLDS</div><p class="hint">The QR token, the 4×4 phone-style unlock pattern, and the ability to authorize. Transfer requires a verified recipient account.</p></div><div><div class="eyebrow">SERVER HOLDS</div><p class="hint">An anonymous locator-indexed encrypted half, a public verification key, encrypted policy, and audit records. It cannot reconstruct the card alone.</p></div></div></div></section><footer class="foot">MONC · CONDITIONAL CREDENTIAL DISCLOSURE · CLIENT-FIRST CARD PACKAGE · FAIL CLOSED</footer></main><div class="ticker"></div><script src="/static/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONC · money with rules inside</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<script>(function(){try{var t=localStorage.getItem('moncTheme');document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){document.documentElement.dataset.theme='dark'}})();</script>
+</head>
+<body>
+<main class="wrap">
+  <header class="topbar">
+    <b class="brand">MONC</b>
+    <span class="descriptor">CONTROLLED AUTHORIZATION FOR THIRD-PARTY SPENDING · v0.1</span>
+    <span class="grow"></span>
+    <span class="clock">--:--:-- UTC</span>
+    <button class="iconbtn theme" type="button" aria-label="Toggle light or dark theme">◐</button>
+  </header>
+  <nav class="nav">
+    <a class="active" href="/">HOME</a><a href="/app">ACCOUNT</a><a href="/about">ABOUT</a>
+  </nav>
+
+  <section class="hero">
+    <div class="eyebrow">// THE PAYMENT INSTRUMENT THAT CAN SAY NO</div>
+    <h1>MONEY WITH<br>RULES INSIDE</h1>
+    <p>Hand a card to someone now — a person, an AI agent, a store — without handing over unlimited trust. They can only propose one <b>exact</b> transaction. You review it, prove ownership from your device, and MONC settles it if every fact checks out at the source, right now.</p>
+    <div class="actions">
+      <a class="btn primary" href="/app">OPEN YOUR ACCOUNT →</a>
+      <a class="btn" href="/about">HOW IT VERIFIES</a>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>Ways to use MONC</b><span>ONE TOKEN · THREE ROLES</span></div>
+    <div class="grid g3">
+      <a class="role" href="/app"><b>Regulate</b><small>Create a card-backing instrument with plain-English rules: a max amount, allowed categories, a city, no late-night spend.</small></a>
+      <a class="role" href="/merchant"><b>Accept</b><small>Connect a Wema settlement account and send MONC an exact checkout context. You never see the card or the pattern.</small></a>
+      <a class="role" href="/about"><b>Verify</b><small>Every condition is re-checked from its authoritative source at authorization time — never trusted from a form.</small></a>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>What MONC verifies</b><span>OWNER POLICY · MERCHANT CONTEXT · THIRD-PARTY REQUEST</span></div>
+    <div class="grid g3">
+      <div class="stat"><strong>01</strong><small>WHO is proposing the spend — a person, agent, or checkout</small></div>
+      <div class="stat"><strong>02</strong><small>WHAT is being bought — product, category, code, and basket</small></div>
+      <div class="stat"><strong>03</strong><small>WHETHER it fits the owner’s compiled rules and limits</small></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>The one tenet</b><span>MINIMIZE ENTRY · COLLECT FROM THE SOURCE</span></div>
+    <div class="pb">
+      <div class="callout warn"><b>Design rule</b>Minimize data entry from both parties and collect directly from the sources in the most definitive / authoritative way. If a fact can't be confirmed at the source, MONC fails closed.</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>Security position</b><span>DEMO BOUNDARIES</span></div>
+    <div class="pb">
+      <p>Card details are encrypted in your browser; the key is derived from your pattern and never leaves the device. Authorization is separate from settlement, and the private key never leaves your browser. In the sandbox, Wema calls are deterministic — a real deployment swaps in the live gateway without changing the load-bearing parts.</p>
+      <div class="form-actions">
+        <a class="btn primary" href="/app">WHY NOT TRY IT →</a>
+        <a class="btn" href="/merchant">SETTLE INTO A MERCHANT</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot"><span>MONC · CONTROLLED AUTHORIZATION · FAIL CLOSED</span><span><a href="/app">ACCOUNT</a> · <a href="/merchant">MERCHANT</a> · <a href="/about">ABOUT</a></span></footer>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

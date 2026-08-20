@@ -18,6 +18,7 @@ import httpx
 import qrcode
 
 from .database import Base, engine, get_db, upgrade_existing_schema
+from . import verification
 from .models import (
     AuthorizationLog,
     Instrument,
@@ -27,7 +28,7 @@ from .models import (
     User,
     SessionToken,
 )
-from .policy import compile_rules, evaluate
+from .policy import Verdict, compile_rules, evaluate
 from .security import (
     decrypt_policy,
     encrypt_policy,
@@ -98,8 +99,16 @@ class AcceptTransferIn(BaseModel):
 class MerchantIn(BaseModel):
     business_name: str = Field(min_length=2, max_length=160)
     merchant_type: str = Field(min_length=2, max_length=50)
-    city: str = Field(min_length=2, max_length=80)
+    city: str = Field(default="", max_length=80)
     account_number: str
+
+
+class LookupIn(BaseModel):
+    account: str = Field(pattern="^[0-9]{10}$")
+
+
+class VerifyRunIn(BaseModel):
+    intent_id: str | None = None
 
 
 class IntentIn(BaseModel):
@@ -237,6 +246,11 @@ def token_qr_dataurl(token: str):
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse(request, "index.html", {})
+
+
+@app.get("/about", response_class=HTMLResponse)
+def about(request: Request):
+    return templates.TemplateResponse(request, "about.html", {})
 
 
 @app.get("/app", response_class=HTMLResponse)
@@ -460,6 +474,20 @@ def accept_transfer(payload: AcceptTransferIn, user: User = Depends(verified_use
     return {"instrument_id": instrument.id, "status": "armed"}
 
 
+@app.get("/api/merchants/lookup")
+def merchant_lookup(account: str, user: User = Depends(verified_user)):
+    """Minimal-entry onboarding: fetch the merchant record from the authoritative source."""
+    result = get_wema_gateway().verify_account(account)
+    if not result.valid:
+        raise HTTPException(400, "Wema could not verify this account number")
+    return {
+        "account_number": account,
+        "account_name": result.account_name,
+        "city": result.city or "",
+        "source": "wema.account_enquiry",
+    }
+
+
 @app.post("/api/merchants")
 def create_merchant(payload: MerchantIn, user: User = Depends(verified_user), db: Session = Depends(get_db)):
     if db.scalar(select(Merchant).where(Merchant.owner_id == user.id)):
@@ -468,12 +496,13 @@ def create_merchant(payload: MerchantIn, user: User = Depends(verified_user), db
     if not result.valid:
         raise HTTPException(400, "Wema account enquiry could not verify this account")
     api_key = "monc_test_" + random_token(28)
+    city = (payload.city.strip() or result.city or "lagos").strip()
     merchant = Merchant(
         id=str(uuid.uuid4()),
         owner_id=user.id,
         business_name=payload.business_name.strip(),
         merchant_type=payload.merchant_type.strip().lower(),
-        city=payload.city.strip(),
+        city=city,
         country="NG",
         account_number_masked="******" + payload.account_number[-4:],
         settlement_account_number=payload.account_number,
@@ -548,15 +577,32 @@ def authorize(
         return log_denial(db, intent, instrument, "Transaction-bound cryptographic proof failed.")
 
     merchant = db.get(Merchant, intent.merchant_id)
+
+    # Tenet: minimise data entry and collect from the most authoritative source.
+    # Re-verify the risky conditions live at authorization time instead of trusting
+    # values that were typed earlier.
+    report = verification.report_for(intent, merchant)
+    verification_json = json.dumps(report, default=str)
+    unverified = verification.unverified_conditions(report["checks"])
+    observed = verification.observed_map(report["checks"])
+
     policy = decrypt_policy(instrument.encrypted_policy, instrument.policy_nonce)
-    verdict = evaluate(
+    if unverified:
+        verdict_denied = Verdict(False,
+                                 "Live verification failed closed: " + ", ".join(c["condition"] for c in unverified)
+                                 + ". The check could not be confirmed from its authoritative source.",
+                                 [c["condition"] for c in unverified])
+    else:
+        verdict_denied = None
+
+    verdict = verdict_denied or evaluate(
         policy,
         {
-            "amount_minor": intent.amount_minor,
+            "amount_minor": observed.get("amount") if observed.get("amount") is not None else intent.amount_minor,
             "product_name": intent.product_name,
             "product_type": intent.product_type,
-            "city": merchant.city,
-            "merchant_verified": merchant.account_verified,
+            "city": observed.get("city") or merchant.city or "",
+            "merchant_verified": bool(observed.get("merchant_verified") if observed.get("merchant_verified") is not None else merchant.account_verified),
             "recurring": False,
         },
         now,
@@ -565,6 +611,7 @@ def authorize(
         id=str(uuid.uuid4()), instrument_id=instrument.id, payment_intent_id=intent.id,
         verdict="allowed" if verdict.allowed else "denied", reason=verdict.reason,
         failed_rules=json.dumps(verdict.failed_rules), proof_verified=True,
+        verification_report=verification_json,
     )
     db.add(log)
     if verdict.allowed:
@@ -579,6 +626,7 @@ def authorize(
         "verdict": log.verdict,
         "reason": log.reason,
         "failed_rules": verdict.failed_rules,
+        "verification": {"reported": bool(verification_json), "checks": report["checks"], "all_verified": report["all_verified"]},
         "payment_intent_id": intent.id,
         "monc_status": intent.status,
         "next": "consent" if verdict.allowed else None,
@@ -797,6 +845,40 @@ def merchant_summary(user: User = Depends(verified_user), db: Session = Depends(
         select(PaymentIntent).where(PaymentIntent.merchant_id == merchant.id).order_by(PaymentIntent.created_at.desc())
     ).all()
     return {"merchant": merchant_view(merchant), "payment_intents": [serialize_intent(i) for i in intents[:30]]}
+
+
+@app.get("/api/verify/sources")
+def verify_sources():
+    return {
+        "sources": verification.SOURCE_NAMES,
+        "tenet": "MONC collects each condition from its most authoritative source instead of asking either party to type it.",
+    }
+
+
+@app.post("/api/verify/run")
+def verify_run(payload: VerifyRunIn, user: User = Depends(verified_user), db: Session = Depends(get_db)):
+    """Harness: run the live verification pipeline for a real intent, or a sandbox sample intent."""
+    if payload.intent_id:
+        intent = db.get(PaymentIntent, payload.intent_id)
+        if not intent:
+            raise HTTPException(404, "Payment intent not found")
+        merchant = db.get(Merchant, intent.merchant_id)
+    else:
+        gateway = get_wema_gateway()
+        enquiry = gateway.verify_account("0123456789")
+        intent = PaymentIntent(
+            id="demo", merchant_id="demo", order_id="DEMO-1", amount_minor=450000, currency="NGN",
+            product_name="University textbook", product_type="education", checkout_domain="shop.example.ng",
+            initiator_type="human", context_hash="demo",
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+        )
+        merchant = Merchant(
+            id="demo", owner_id=user.id, business_name="Example Foods", merchant_type="restaurant",
+            city=enquiry.city, country="NG", account_number_masked="******6789",
+            settlement_account_number="0123456789", account_fingerprint="demo",
+            account_name=enquiry.account_name, account_verified=True, api_key_hash="demo",
+        )
+    return verification.report_for(intent, merchant)
 
 
 @app.get("/health")

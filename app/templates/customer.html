@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MONC · customer console</title>
+<title>MONC · your account</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/app.css">
@@ -13,17 +13,24 @@
 <main class="wrap">
   <header class="topbar">
     <b class="brand">MONC</b>
-    <span class="descriptor">CUSTOMER CONSOLE</span>
+    <span class="descriptor">YOUR ACCOUNT</span>
     <span class="grow"></span>
     <span class="clock"></span>
     <button class="iconbtn theme" type="button" aria-label="Toggle light or dark theme">◐</button>
-    <button id="logoutBtn" class="btn small" style="margin-left:8px;" aria-label="Logout">LOG OUT</button>
+    <button id="logoutBtn" class="btn small" style="margin-left:8px;" aria-label="Sign out">SIGN OUT</button>
   </header>
   <nav class="nav">
-    <a href="/">HOME</a><a class="active" href="/app">CUSTOMER</a><a href="/merchant">MERCHANT</a>
+    <a href="/">HOME</a><a class="active" href="/app">ACCOUNT</a><a href="/about">ABOUT</a>
   </nav>
 
-  <!-- Loading / Success overlays -->
+  <ol class="steps">
+    <li id="stepSignin" class="current"><b>1 · Sign in</b>Create or open your account</li>
+    <li id="stepVerify"><b>2 · Verify</b>Confirm it's you</li>
+    <li id="stepIssue"><b>3 · Issue</b>Create a card with rules</li>
+    <li id="stepSpend"><b>4 · Authorize</b>Approve each exact payment</li>
+  </ol>
+
+  <!-- Loading / success overlays -->
   <div id="overlay" class="overlay hidden" aria-hidden="true">
     <div class="spinner" aria-hidden="true"></div>
   </div>
@@ -32,118 +39,128 @@
   </div>
 
   <section class="hero">
-    <div class="eyebrow">// REGISTER · ISSUE · TRANSFER · AUTHORIZE</div>
-    <h1>YOUR CONTROL<br>PLANE</h1>
-    <p>Sign in to create a MONC instrument, encrypt your card package locally, carry the token by QR, and let a verified third party propose purchases without handing over an unrestricted credential.</p>
+    <div class="eyebrow">// ONE TOKEN · YOUR RULES · YOUR SAY</div>
+    <h1>YOUR MONEY,<br>YOUR RULES</h1>
+    <p>Create a MONC card that carries your rules inside it. Anyone you hand it to can only spend the way you allow — and every authorization is checked against real sources, not just your word.</p>
   </section>
 
   <section id="auth" class="panel">
-    <div class="ph"><b>Account access</b><span>VERIFIED ACCOUNT REQUIRED</span></div>
+    <div class="ph"><b>Welcome to MONC</b><span>TAKES ABOUT A MINUTE</span></div>
     <div class="grid g2">
       <div class="authbox">
-        <h3>Register</h3>
-        <input id="regName" placeholder="Your name">
-        <input id="regEmail" placeholder="Email" type="email">
-        <input id="regPass" placeholder="Password · 10+ characters" type="password">
+        <h3 style="margin:0 0 10px">Create your account</h3>
+        <div class="inputgrp"><label for="regName">Your name</label><input id="regName" type="text" autocomplete="name" placeholder="e.g. Ada Obi"></div>
+        <div class="inputgrp"><label for="regEmail">Email</label><input id="regEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+        <div class="inputgrp"><label for="regPass">Create a password</label><input id="regPass" type="password" autocomplete="new-password" placeholder="10+ characters"><div class="hint">The demo sends a 6-digit code to your screen right after you sign up.</div></div>
         <button class="btn primary" id="register">CREATE ACCOUNT</button>
-        <p class="hint">Demo verification code is shown after registration. A production deployment sends it through a verified channel.</p>
+        <div id="authMsg" role="status" aria-live="polite" style="margin-top:10px"></div>
       </div>
       <div class="authbox">
-        <h3>Sign in</h3>
-        <input id="loginEmail" placeholder="Email" type="email">
-        <input id="loginPass" placeholder="Password" type="password">
+        <h3 style="margin:0 0 10px">Already have an account?</h3>
+        <div class="inputgrp"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
+        <div class="inputgrp"><label for="loginPass">Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="Your password"></div>
         <button class="btn" id="login">SIGN IN</button>
-        <div id="authMsg"></div>
       </div>
     </div>
   </section>
 
   <section id="verify" class="panel hidden">
-    <div class="ph"><b>Verify account</b><span>THE PERSON BEHIND THE TOKEN MATTERS</span></div>
+    <div class="ph"><b>Verify your account</b><span>AN EXTRA 30 SECONDS</span></div>
     <div class="pb">
-      <input id="verifyCode" placeholder="6-digit verification code">
+      <div class="callout"><b>Why we ask</b>A verified MONC account is required to own an instrument or receive a transfer — it's what lets the other party trust your token.</div>
+      <div class="inputgrp"><label for="verifyCode">6-digit verification code</label><input id="verifyCode" inputmode="numeric" maxlength="6" placeholder="000000"></div>
       <button class="btn primary" id="verifyBtn">VERIFY ACCOUNT</button>
     </div>
   </section>
 
   <div id="console" class="hidden">
     <section class="panel">
-      <div class="ph"><b>Instruments</b><span>ANONYMOUS LOCATOR · CLIENT QR</span></div>
+      <div class="ph"><b>Your cards</b><span>EACH ONE CARRIES ITS OWN RULES</span></div>
       <div class="pb">
         <div id="instruments" class="rows"></div>
         <div class="actions">
-          <button class="btn primary" id="newInstrument">CREATE CARD-BACKED INSTRUMENT</button>
+          <button class="btn primary" id="newInstrument">CREATE A CARD</button>
           <button class="btn" id="refresh">REFRESH</button>
+          <a class="btn" href="/merchant">ACCEPT PAYMENTS →</a>
         </div>
       </div>
     </section>
 
     <section class="panel">
-      <div class="ph"><b>Incoming token transfers</b><span>ACCEPT TO BECOME THE OWNER</span></div>
+      <div class="ph"><b>Cards being given to you</b><span>ACCEPT TO BECOME THE OWNER</span></div>
       <div class="pb"><div id="incomingList"></div></div>
     </section>
 
     <section id="issuePanel" class="panel hidden">
-      <div class="ph"><b>Issue locally</b><span>THE CARD NEVER LEAVES THIS BROWSER</span></div>
+      <div class="ph"><b>Create a card</b><span>THE CARD NEVER LEAVES THIS BROWSER</span></div>
       <div class="pb">
-        <div class="notice"><b>Prototype boundary:</b> card details are encrypted in this browser. Never test with a real card in a demo environment. Production uses a PCI tokenization provider and server-side key management.</div>
-        <div class="grid g2" style="margin-top:14px">
+        <div class="callout warn"><b>Prototype boundary</b>Card details are encrypted in this browser and never stored or transmitted in clear. Never test with a real card in the sandbox. Production uses PCI tokenization, not PAN/CVV.</div>
+        <div class="grid g2">
           <div>
-            <label>Card number · demo only</label>
-            <input id="cardNumber" inputmode="numeric" placeholder="4111 1111 1111 1111">
-            <label>Expiry</label>
-            <input id="cardExpiry" placeholder="MM/YY">
-            <label>Cardholder</label>
-            <input id="cardName" placeholder="CARDHOLDER">
+            <div class="inputgrp"><label for="cardNumber">Card number · demo only</label><input id="cardNumber" inputmode="numeric" autocomplete="cc-number" placeholder="4111 1111 1111 1111"></div>
+            <div class="grid g2" style="gap:10px">
+              <div class="inputgrp"><label for="cardExpiry">Expiry</label><input id="cardExpiry" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/YY" maxlength="5"></div>
+              <div class="inputgrp"><label for="cardName">Cardholder</label><input id="cardName" type="text" autocomplete="cc-name" placeholder="CARDHOLDER"></div>
+            </div>
+            <div class="inputgrp"><label for="alias">Card name</label><input id="alias" type="text" placeholder="WORK SUPPLIES"></div>
           </div>
           <div>
-            <label>Instrument alias</label>
-            <input id="alias" placeholder="WORK SUPPLIES">
-            <label>Rules in plain English</label>
-            <textarea id="rules">Only allow food and transport purchases
+            <div class="inputgrp"><label for="rules">Your rules, in plain English</label><textarea id="rules" rows="6">Only allow food and transport purchases
 Maximum NGN 10,000 per transaction
 Only allow transactions in Lagos
-No purchases after 10 PM</textarea>
+No purchases after 10 PM</textarea><div class="hint">One rule per line. Anything MONC can't compile into a deterministic check fails closed.</div></div>
           </div>
         </div>
-        <label>4×4 phone unlock pattern</label>
-        <p class="hint">The pattern derives the key in this browser. It is never stored or transmitted.</p>
-        <div id="pattern" class="pattern"></div>
-        <p id="patternStatus" class="hint"></p>
 
-        <!-- Compiled policy preview from AI/compile step -->
+        <div class="inputgrp"><label for="pattern">4×4 unlock pattern</label><div id="pattern" class="pattern"></div><p id="patternStatus" class="hint">Draw at least 4 cells. The pattern derives your key in this browser — it is never stored or transmitted.</p></div>
+
         <div id="compiledPolicy" class="panel small hidden">
-          <div class="ph"><b>Compiled policy (preview)</b><span>REVIEW BEFORE ISSUE</span></div>
+          <div class="ph"><b>Your compiled rules (preview)</b><span>REVIEW BEFORE CREATE</span></div>
           <div class="pb"><pre id="compiledJson" style="white-space:pre-wrap"></pre></div>
         </div>
 
-        <div class="actions">
-          <button class="btn primary" id="issueBtn">ENCRYPT AND ISSUE →</button>
+        <div id="sourcePreview" class="panel small hidden">
+          <div class="ph"><b>Verified from the source</b><span>NOT TYPED · COLLECTED LIVE</span></div>
+          <div class="pb"><div id="sourceList" class="vlist"></div></div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn primary lg" id="issueBtn">CREATE MY CARD →</button>
           <button class="btn" id="cancelIssue">CANCEL</button>
         </div>
-        <div id="issueResult"></div>
+        <div id="issueResult" role="status" aria-live="polite"></div>
       </div>
     </section>
 
     <section id="tokenPanel" class="panel hidden">
-      <div class="ph"><b>MONC token</b><span>TRANSFERABLE · OWNERSHIP REQUIRES A VERIFIED ACCOUNT</span></div>
+      <div class="ph"><b>Your card is ready</b><span>KEEP IT SAFE · SCAN OR DOWNLOAD</span></div>
       <div class="pb">
-        <div id="tokenText" class="tokenbox"></div>
-        <img id="tokenQR" class="qrcode" alt="MONC token QR code">
-        <div class="actions">
-          <button class="btn small" id="downloadToken">DOWNLOAD TOKEN</button>
+        <div class="callout ok"><b>One more step for the other party</b>To authorize, they'll need this token and your pattern — or you can hand them the QR with the token text.</div>
+        <div class="grid g2" style="align-items:start">
+          <div>
+            <div id="tokenText" class="tokenbox"></div>
+            <div class="actions" style="margin-top:10px">
+              <button class="btn small" id="downloadToken">DOWNLOAD TOKEN</button>
+              <button class="btn small" id="copyToken">COPY</button>
+            </div>
+          </div>
+          <div>
+            <img id="tokenQR" class="qrcode" alt="MONC token QR code">
+          </div>
         </div>
-        <label>Transfer to a verified MONC account</label>
-        <div class="grid g2">
-          <input id="recipient" placeholder="recipient@email.com">
-          <button class="btn" id="transferBtn">REQUEST TRANSFER</button>
+        <div class="inputgrp" style="margin-top:14px"><label for="recipient">Give this card to another verified MONC account</label>
+          <div class="grid g2">
+            <input id="recipient" type="email" placeholder="recipient@example.com">
+            <button class="btn" id="transferBtn">REQUEST TRANSFER</button>
+          </div>
+          <div class="hint">The recipient must have a verified MONC account. Ownership moves only after they accept.</div>
         </div>
-        <div id="transferMsg"></div>
+        <div id="transferMsg" role="status" aria-live="polite"></div>
       </div>
     </section>
   </div>
 
-  <footer class="foot">MONC · CUSTOMER CONSOLE · LOCAL ENCRYPTION · POLICY-CONTROLLED SPENDING</footer>
+  <footer class="foot"><span>MONC · YOUR ACCOUNT · LOCAL ENCRYPTION · RULES THAT CAN SAY NO</span><span><a href="/">HOME</a> · <a href="/about">ABOUT</a></span></footer>
 </main>
 <script src="/static/app.js"></script>
 <script>
@@ -169,11 +186,54 @@ async function api(path, opts={}){
   }finally{ hideLoading(); }
 }
 
+function setStep(id){
+  ['stepSignin','stepVerify','stepIssue','stepSpend'].forEach(s => {
+    const el = document.getElementById(s);
+    el.classList.remove('current','done');
+    if (s === id) el.classList.add('current');
+    else if (['stepSignin','stepVerify','stepIssue'].indexOf(s) < ['stepSignin','stepVerify','stepIssue','stepSpend'].indexOf(id)) el.classList.add('done');
+  });
+}
+
+function advanceStep(id){
+  ['stepSignin','stepVerify','stepIssue','stepSpend'].forEach(s => {
+    const el = document.getElementById(s);
+    el.classList.remove('current','done');
+    if (s === id) el.classList.add('current');
+  });
+  let reached = false;
+  ['stepSignin','stepVerify','stepIssue','stepSpend'].forEach(s => {
+    if (s === id) reached = true;
+    else if (!reached) document.getElementById(s).classList.add('done');
+  });
+}
+
+function formatCard(v){
+  return v.replace(/\D/g,'').slice(0,16).replace(/(\d{4})(?=\d)/g,'$1 ');
+}
+$('#cardNumber').addEventListener('input', function(){ this.value = formatCard(this.value); });
+$('#cardExpiry').addEventListener('input', function(){
+  let v = this.value.replace(/\D/g,'').slice(0,4);
+  if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);
+  this.value = v;
+});
+
+async function loadSources(){
+  try{
+    const d = await api('/api/verify/sources');
+    const list = document.getElementById('sourceList');
+    list.innerHTML = Object.entries(d.sources || {}).map(([key, note]) =>
+      `<div class="vrow ok"><span class="vicon">✓</span><span><b>${esc(key)}</b><br>${esc(note)}</span><span class="vsrc">AUTHORITATIVE</span></div>`).join('');
+    document.getElementById('sourcePreview').classList.remove('hidden');
+  }catch(e){}
+}
+
 async function load(){
   try{
     me = await api('/api/me');
     if(!me.user.verified){
       $('#auth').classList.add('hidden');
+      advanceStep('stepVerify');
       $('#verify').classList.remove('hidden');
       $('#console').classList.add('hidden');
       return;
@@ -181,25 +241,31 @@ async function load(){
     $('#auth').classList.add('hidden');
     $('#verify').classList.add('hidden');
     $('#console').classList.remove('hidden');
+    advanceStep('stepIssue');
     renderMe();
-  }catch(e){ if(e.status!==401) msg(e.message); }
+  }catch(e){
+    if(e.status!==401) msg(e.message);
+    else advanceStep('stepSignin');
+  }
 }
 
 function renderMe(){
   const list = $('#instruments');
   list.innerHTML = me.instruments.length
-    ? me.instruments.map(x => `<div class="row"><span class="key">${esc(x.alias)}</span><span class="dots"></span><span class="val">${esc(x.status)} · ${esc(x.id.slice(0,8))}</span></div>`).join('\n')
-    : '<p class="hint">No instruments yet. Issue one below.</p>';
+    ? me.instruments.map(x => `<div class="row"><span class="key">${esc(x.alias)}</span><span class="dots"></span><span class="val"><span class="pill ${x.status==='armed'?'ok':x.status==='transfer_pending'?'warn':'idle'}">${esc(x.status)}</span> · ${esc(x.id.slice(0,8))}</span></div>`).join('\n')
+    : '<div class="empty">No cards yet. Create one below — it takes about a minute.</div>';
   $('#incomingList').innerHTML = me.incoming_transfers.length
     ? me.incoming_transfers.map(x => `<div class="intent"><b>Instrument ${esc(x.instrument_id.slice(0,8))}</b><button class="btn small accept-transfer" data-transfer-id="${esc(x.id)}">ACCEPT TOKEN</button></div>`).join('\n')
-    : '<span class="hint">No pending transfers.</span>';
+    : '<div class="empty">No cards waiting to be handed to you.</div>';
 }
 
 $('#register').onclick = async () => {
   try{
     const x = await api('/api/auth/register', {method:'POST', body:JSON.stringify({email:$('#regEmail').value, display_name:$('#regName').value, password:$('#regPass').value})});
-    msg('Account created. Demo verification code: ' + x.demo_verification_code, true);
+    msg('Account created. Your demo code: ' + x.demo_verification_code, true);
+    advanceStep('stepVerify');
     $('#verify').classList.remove('hidden');
+    $('#verifyCode').focus();
   }catch(e){ msg(e.message); }
 };
 
@@ -218,32 +284,31 @@ $('#verifyBtn').onclick = async () => {
 };
 
 $('#logoutBtn').onclick = async ()=>{
-  try{ await api('/api/auth/logout', {method:'POST'}); location.reload(); }catch(e){ alert('Logout failed: '+e.message); }
-}
+  try{ await api('/api/auth/logout', {method:'POST'}); location.reload(); }catch(e){ alert('Sign out failed: '+e.message); }
+};
 
 $('#newInstrument').onclick = () => {
   $('#issuePanel').classList.remove('hidden');
+  $('#issuePanel').scrollIntoView({behavior:'smooth'});
   if (!pat) pat = makePattern($('#pattern'));
+  loadSources();
 };
 $('#cancelIssue').onclick = () => $('#issuePanel').classList.add('hidden');
 $('#refresh').onclick = load;
 
 $('#issueBtn').onclick = async () => {
-  if (pat.length() < 4){ $('#patternStatus').textContent = 'Pattern too short. Draw at least 4 cells.'; return; }
+  if (pat.length() < 4){ $('#patternStatus').textContent = 'Draw at least 4 pattern cells first.'; return; }
   const id = crypto.randomUUID();
   const locator = b64(random(24));
   const rules = $('#rules').value.split('\n').map(x => x.trim()).filter(Boolean);
   $('#compiledPolicy').classList.add('hidden');
   try{
-    // Ask server to compile/validate the natural language rules (AI-assisted compile endpoint)
     const compiled = await api('/api/compile_policy', {method:'POST', body:JSON.stringify({rules})});
-    $('#compiledJson').textContent = JSON.stringify(compiled.policy, null, 2) + '\n\nTests:\n' + JSON.stringify(compiled.tests || [], null, 2);
+    $('#compiledJson').textContent = JSON.stringify(compiled.policy, null, 2) + '\n\nSample checks:\n' + JSON.stringify(compiled.tests || [], null, 2);
     $('#compiledPolicy').classList.remove('hidden');
-    // Allow user to inspect compiled policy before continuing; if unsupported rules exist warn the user
     if (compiled.policy && compiled.policy.unsupported && compiled.policy.unsupported.length){
-      if(!confirm('Some rules could not be compiled and will fail closed:\n\n'+compiled.policy.unsupported.join('\n')+'\n\nProceed anyway?')){ return; }
+      if(!confirm('Some rules cannot be converted into a deterministic check and will fail closed:\n\n'+compiled.policy.unsupported.join('\n')+'\n\nCreate the card anyway?')){ return; }
     }
-    // proceed to generate keys and issue
     const p = pat.value();
     const card = {number:$('#cardNumber').value.replace(/\s/g,''), expiry:$('#cardExpiry').value, name:$('#cardName').value};
     const key = await patternKey(p, id);
@@ -256,18 +321,24 @@ $('#issueBtn').onclick = async () => {
     const token = tokenEncode({v:1, instrument_id:id, locator, card_box:cardBox, private_box:privateBox});
 
     const saved = await api('/api/instruments', {method:'POST', body:JSON.stringify({
-      instrument_id:id, alias:$('#alias').value || 'MONC INSTRUMENT', locator,
+      instrument_id:id, alias:$('#alias').value || 'MONC CARD', locator,
       encrypted_server_half:JSON.stringify(serverBox), public_key_jwk:jwk, rules})});
     currentToken = token;
     $('#tokenPanel').classList.remove('hidden');
     $('#tokenText').textContent = token;
     const qr = await api('/token_qr_dataurl?token=' + encodeURIComponent(token));
     $('#tokenQR').src = qr.data_url;
-    $('#issueResult').textContent = 'ISSUED · encrypted locally · ' + saved.instrument_id;
+    $('#issueResult').textContent = 'Card created · encrypted locally · ' + saved.instrument_id;
     $('#issueResult').className = 'success';
     showSuccess();
+    advanceStep('stepSpend');
     $('#tokenPanel').scrollIntoView({behavior:'smooth'});
   }catch(e){ $('#issueResult').textContent=e.message; $('#issueResult').className='error'; }
+};
+
+$('#copyToken').onclick = async () => {
+  try{ await navigator.clipboard.writeText(currentToken); $('#copyToken').textContent='COPIED'; setTimeout(()=>$('#copyToken').textContent='COPY',1200); }
+  catch(e){ $('#copyToken').textContent='NOT SUPPORTED'; }
 };
 
 $('#downloadToken').onclick = () => download('monc-token.json', currentToken);

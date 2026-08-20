@@ -45,6 +45,9 @@ def upgrade_existing_schema() -> None:
             "merchant_credited": "BOOLEAN DEFAULT 0",
             "state_reason": "TEXT",
         },
+        "authorization_logs": {
+            "verification_report": "TEXT",
+        },
     }
     with engine.begin() as connection:
         inspector = inspect(connection)

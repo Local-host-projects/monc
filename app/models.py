@@ -120,4 +120,5 @@ class AuthorizationLog(Base):
     reason: Mapped[str] = mapped_column(Text)
     failed_rules: Mapped[str] = mapped_column(Text, default="[]")
     proof_verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    verification_report: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MONC · checkout</title>
+<title>MONC · review this payment</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/app.css">
@@ -13,112 +13,151 @@
 <main class="wrap">
   <header class="topbar">
     <b class="brand">MONC</b>
-    <span class="descriptor">CHECKOUT · THIRD-PARTY PAYMENT PROPOSAL</span>
+    <span class="descriptor">REVIEW & AUTHORIZE</span>
     <span class="grow"></span>
     <span class="clock"></span>
     <button class="iconbtn theme" type="button" aria-label="Toggle light or dark theme">◐</button>
   </header>
+
+  <ol class="steps">
+    <li id="stepReview" class="current"><b>1 · Review</b>See the exact request</li>
+    <li id="stepConsent"><b>2 · Consent</b>Approve the debit</li>
+    <li id="stepSettled"><b>3 · Settled</b>Merchant gets credited</li>
+  </ol>
+
   <section class="hero">
-    <div class="eyebrow">// REVIEW · AUTHORIZE · CONSENT · SETTLE</div>
-    <h1>DOES THIS<br>FIT YOUR RULES?</h1>
-    <p>The merchant has proposed a fixed transaction. MONC verifies the exact checkout, your verified account, your instrument and your owner-defined policy. Authorization and settlement are separate: MONC says <b>yes</b>, then the ALAT Authenticator approves the actual Wema debit.</p>
+    <div class="eyebrow">// ONE EXACT REQUEST · YOU DECIDE</div>
+    <h1>REVIEW THIS<br>PAYMENT FIRST</h1>
+    <p>A merchant — or an AI agent — proposed this fixed purchase. You get to see exactly what it is, prove you own the card, and MONC will settle it only if every check passes and <b>you</b> approve the debit.</p>
   </section>
 
   <section class="panel">
-    <div class="ph"><b>Payment proposal</b><span id="expiry">LOADING</span></div>
-    <div class="pb"><div id="intent" class="rows"></div></div>
+    <div class="ph"><b>Payment request</b><span id="expiry">LOADING</span></div>
+    <div class="pb">
+      <div id="intent" class="rows"></div>
+    </div>
   </section>
 
   <section id="authorize" class="panel">
-    <div class="ph"><b>Authorize as owner</b><span>CLIENT-SIDE PATTERN PROOF</span></div>
+    <div class="ph"><b>Approve as the owner</b><span>YOUR TOKEN + YOUR PATTERN</span></div>
     <div class="pb">
-      <label>MONC token · paste or upload the QR export</label>
-      <textarea id="token" placeholder="MONC1...."></textarea>
-      <label>4×4 phone unlock pattern</label>
-      <div id="pattern" class="pattern"></div>
-      <p id="patternStatus" class="hint">The pattern stays in this browser and never leaves it.</p>
-      <button class="btn primary" id="pay">AUTHORIZE EXACT PAYMENT →</button>
-      <div id="result"></div>
+      <div class="callout"><b>Nothing leaves this browser</b>The private key lives inside your token and is unlocked by your pattern, right here. MONC only sees the cryptographic proof and the exact amount you're approving.</div>
+      <div class="inputgrp"><label for="token">Your MONC token · paste the text or scan your QR</label>
+        <textarea id="token" placeholder="MONC1...."></textarea>
+      </div>
+      <div class="inputgrp"><label for="pattern">Your 4×4 unlock pattern</label><div id="pattern" class="pattern"></div>
+        <p id="patternStatus" class="hint">Draw the same pattern you created the card with. It never leaves this page.</p>
+      </div>
+      <div class="form-actions">
+        <button class="btn primary lg" id="pay">APPROVE THIS PAYMENT →</button>
+      </div>
+      <div id="result" role="status" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="verification" class="panel hidden">
+    <div class="ph"><b>Live verification</b><span>COLLECTED FROM THE SOURCE, RIGHT NOW</span></div>
+    <div class="pb">
+      <p style="font-size:12px;color:var(--muted)">MONC re-checked each condition at its authoritative source before deciding. <b>Fail-closed:</b> anything that could not be confirmed was treated as a no.</p>
+      <div id="verificationList" class="vlist"></div>
     </div>
   </section>
 
   <section id="consent" class="panel hidden">
-    <div class="ph"><b>ALAT Authenticator consent</b><span id="consentState">NOT STARTED</span></div>
+    <div class="ph"><b>Approve the debit</b><span id="consentState">NOT STARTED</span></div>
     <div class="pb">
-      <div class="notice"><b>How funding works now:</b> MONC does not move money on authorization. After your rule-passing verdict, the ALAT Authenticator asks <i>you</i> to approve the exact debit from your Wema account, then Wema settles the merchant payout.</div>
-      <div class="grid g2" style="margin-top:14px">
-        <div>
-          <label>Your Wema / ALAT account number</label>
-          <input id="sourceAccount" inputmode="numeric" placeholder="10 digits" maxlength="10">
-          <button class="btn primary" id="startConsent">START ALAT AUTHENTICATOR CONSENT →</button>
-        </div>
+      <div class="callout"><b>How funding works</b>Approving this page does not move money. Next, ALAT Authenticator asks <i>you</i> to approve the exact debit from your Wema account, then Wema settles the merchant payout.</div>
+      <div class="grid g2">
+        <div class="inputgrp"><label for="sourceAccount">Your Wema / ALAT account number</label><input id="sourceAccount" inputmode="numeric" placeholder="10 digits" maxlength="10"></div>
         <div id="approval" class="hidden">
-          <label>ALAT Authenticator approval code</label>
-          <input id="consentCode" inputmode="numeric" placeholder="6 digits">
-          <p class="hint" id="codeHint">In sandbox the demo code is prefilled. In a live deployment the customer approves inside the ALAT app; MONC only polls.</p>
-          <button class="btn" id="approve">APPROVE DEBIT (SANDBOX)</button>
+          <div class="inputgrp"><label for="consentCode">ALAT approval code</label><input id="consentCode" inputmode="numeric" placeholder="6 digits"><p class="hint" id="codeHint">In sandbox the demo code is prefilled. In a live deployment you approve inside the ALAT app; MONC only polls.</p></div>
+          <button class="btn primary" id="approve">APPROVE THE DEBIT (SANDBOX)</button>
         </div>
       </div>
-      <div id="consentMsg"></div>
+      <div class="form-actions"><button class="btn primary" id="startConsent">START ALAT CONSENT →</button></div>
+      <div id="consentMsg" role="status" aria-live="polite"></div>
     </div>
   </section>
 
   <section id="lifecycle" class="panel hidden">
-    <div class="ph"><b>Payment lifecycle</b><span id="lifecycleMode">STATUS</span></div>
+    <div class="ph"><b>Payment progress</b><span id="lifecycleMode">STATUS</span></div>
     <div class="pb">
       <div id="stages" class="rows"></div>
-      <div class="actions">
-        <button class="btn small" id="refreshStatus">REFRESH STATUS</button>
-      </div>
+      <div class="actions"><button class="btn small" id="refreshStatus">REFRESH STATUS</button></div>
       <div id="final" class="notice hidden" style="margin-top:14px"></div>
     </div>
   </section>
 
-  <footer class="foot">MONC · PAYMENT INTENT · POLICY CHECK → CONSENT → DEBIT → SETTLEMENT · FAIL CLOSED</footer>
+  <footer class="foot"><span>MONC · REVIEW → CONSENT → SETTLE · FAIL CLOSED</span><span><a href="/">HOME</a> · <a href="/app">ACCOUNT</a> · <a href="/about">ABOUT</a></span></footer>
 </main>
 <script src="/static/app.js"></script>
 <script>
+const FRIENDLY = {
+  amount:'Amount', currency:'Currency', product:'Product', category:'Category', checkout_domain:'Checkout domain',
+  merchant_verified:'Merchant verified', city:'Merchant city', account_name:'Account name', consent:'Customer consent'
+};
+const SOURCE_SHORT = {
+  'monc.payment_intent':'intent ledger','wema.account_enquiry':'bank enquiry','wema.consent_status':'bank consent'
+};
 let intent, pat = makePattern($('#pattern'));
 
-function renderIntent(){
-  $('#intent').innerHTML = Object.entries({
-    merchant: intent.merchant.business_name,
-    'merchant status': intent.merchant.account_verified ? 'verified' : 'not verified',
-    amount: (intent.amount_minor / 100).toLocaleString() + ' ' + intent.currency,
-    product: intent.product_name,
-    category: intent.product_type,
-    'product code': intent.product_code || 'not supplied',
-    domain: intent.checkout_domain,
-    initiator: intent.initiator_type,
-    order: intent.order_id,
-    status: intent.status,
-    expires: new Date(intent.expires_at).toLocaleString(),
-  }).map(([k, v]) => `<div class="row"><span class="key">${k}</span><span class="dots"></span><span class="val">${v}</span></div>`).join('');
-  $('#expiry').textContent = 'EXPIRES ' + new Date(intent.expires_at).toLocaleTimeString();
+function setPayLabel(){
+  if (intent && intent.amount_minor !== undefined){
+    const n = (intent.amount_minor/100).toLocaleString(undefined,{minimumFractionDigits:2});
+    $('#pay').textContent = 'APPROVE ' + n + ' ' + (intent.currency || 'NGN') + ' →';
+  }
+}
+function renderVerification(verification){
+  const el = document.getElementById('verification');
+  const list = document.getElementById('verificationList');
+  el.classList.remove('hidden');
+  list.innerHTML = (verification.checks || []).map(c => {
+    const ok = c.verified ? 'ok' : 'err';
+    const icon = c.verified ? '✓' : '✗';
+    const label = FRIENDLY[c.condition] || c.condition;
+    return `<div class="vrow ${ok}"><span class="vicon">${icon}</span><span><b>${label}</b><br>${c.note || ''}</span><span class="vsrc">${SOURCE_SHORT[c.source] || c.source}</span></div>`;
+  }).join('') || '<div class="empty">No conditions to verify.</div>';
 }
 
-function stage(k, v){ return `<div class="row"><span class="key">${k}</span><span class="dots"></span><span class="val">${v}</span></div>`; }
+function renderIntent(){
+  const rows = [
+    ['Merchant', intent.merchant.business_name],
+    ['Merchant status', intent.merchant.account_verified ? '<span class="pill ok">VERIFIED</span>' : '<span class="pill warn">NOT VERIFIED</span>'],
+    ['Amount', (intent.amount_minor/100).toLocaleString(undefined,{minimumFractionDigits:2}) + ' ' + intent.currency],
+    ['Product', esc(intent.product_name)],
+    ['Category', esc(intent.product_type)],
+    ['Product code', esc(intent.product_code || 'not supplied')],
+    ['Checkout domain', esc(intent.checkout_domain)],
+    ['Initiated by', intent.initiator_type === 'agent' ? 'An AI agent' : 'A person at the store'],
+    ['Order', esc(intent.order_id)],
+  ];
+  $('#intent').innerHTML = rows.map(([k,v]) => `<div class="row"><span class="key">${esc(k)}</span><span class="dots"></span><span class="val">${v || '—'}</span></div>`).join('');
+  $('#expiry').textContent = 'EXPIRES ' + new Date(intent.expires_at).toLocaleTimeString();
+  setPayLabel();
+}
 
 function showLifecycle(s){
   $('#lifecycle').classList.remove('hidden');
   $('#lifecycleMode').textContent = 'WEMA MODE · ' + s.wema_mode;
+  const pill = (state) => {
+    const cls = {'successful':'ok','failed':'err','reversed':'err','denied':'err','expired':'idle','authorized':'ok','pending':'idle'}[state] || 'warn';
+    return `<span class="pill ${cls}">${esc(state)}</span>`;
+  };
   $('#stages').innerHTML =
-    stage('policy', s.status === 'denied' ? 'DENIED' : 'ALLOWED') +
-    stage('consent', s.wema_state) +
-    stage('source account', s.source_account_masked || '—') +
-    stage('wema reference', s.wema_reference || '—') +
-    stage('merchant debit', s.settlement_reference || '—') +
-    stage('settlement', s.status) +
-    stage('merchant credited', s.merchant_credited ? 'YES' : 'NO') +
-    stage('merchant ledger', (s.merchant_credit_minor / 100).toLocaleString() + ' NGN') +
-    (s.state_reason ? stage('reason', s.state_reason) : '');
+    `<div class="row"><span class="key">Policy</span><span class="dots"></span><span class="val">${s.status === 'denied' ? pill('denied') : pill('allowed')}</span></div>` +
+    `<div class="row"><span class="key">Consent</span><span class="dots"></span><span class="val">${pill(s.wema_state)}</span></div>` +
+    `<div class="row"><span class="key">Source account</span><span class="dots"></span><span class="val">${esc(s.source_account_masked || '—')}</span></div>` +
+    `<div class="row"><span class="key">Merchant payout</span><span class="dots"></span><span class="val">${esc(s.settlement_reference || 'not yet initiated')}</span></div>` +
+    `<div class="row"><span class="key">Status</span><span class="dots"></span><span class="val">${pill(s.status)}</span></div>` +
+    `<div class="row"><span class="key">Merchant credited</span><span class="dots"></span><span class="val">${s.merchant_credited ? 'YES' : 'NO'}</span></div>` +
+    (s.state_reason ? `<div class="row"><span class="key">Why</span><span class="dots"></span><span class="val">${esc(s.state_reason)}</span></div>` : '');
   const terminal = ['successful','failed','reversed','denied','expired'].includes(s.status);
   const f = $('#final');
   if (terminal){
     f.classList.remove('hidden');
     f.innerHTML = s.status === 'successful'
-      ? '<b>SETTLED.</b> Consent approved, Wema debited the customer and the merchant payout is recorded. Policy + consent + settlement are all exact.'
-      : '<b>FAIL CLOSED.</b> MONC refused or Wema did not settle. Nothing was credited to the merchant.';
+      ? '<div class="callout ok"><b>Settled</b>Consent approved, Wema debited your account, and the merchant payout is recorded. Policy + consent + settlement were all exact.</div>'
+      : '<div class="callout err"><b>Failed closed</b>MONC refused, or Wema did not settle. Nothing was credited to the merchant and your money was not moved by MONC.</div>';
   } else {
     f.classList.add('hidden');
   }
@@ -132,12 +171,12 @@ async function load(){
       const s = await api('/api/payment-intents/' + intent.payment_intent_id + '/status');
       showLifecycle(s);
     }
-  }catch(e){ $('#intent').innerHTML = '<div class="error">' + e.message + '</div>'; }
+  }catch(e){ $('#intent').innerHTML = '<div class="empty">Could not load this payment request: ' + esc(e.message) + '</div>'; }
 }
 
 $('#pay').onclick = async () => {
   try{
-    if (pat.length() < 4) throw Error('Draw at least 4 pattern cells');
+    if (pat.length() < 4) throw Error('Draw at least 4 pattern cells first');
     const token = tokenDecode($('#token').value.trim());
     const key = await patternKey(pat.value(), token.instrument_id);
     const server = await api('/api/instruments/resolve', {method:'POST', body:JSON.stringify({locator: token.locator})});
@@ -148,16 +187,22 @@ $('#pay').onclick = async () => {
     const raw = new Uint8Array(await crypto.subtle.sign({name:'ECDSA', hash:'SHA-256'}, privateKey, enc.encode(message)));
     const x = await api('/api/payment-intents/' + intent.payment_intent_id + '/authorize', {
       method:'POST', body:JSON.stringify({locator: token.locator, signature: b64(raw)})});
+    if (x.verification) renderVerification(x.verification);
     if (x.verdict === 'allowed' && x.next === 'consent'){
+      document.getElementById('stepReview').classList.remove('current');
+      document.getElementById('stepReview').classList.add('done');
+      document.getElementById('stepConsent').classList.add('current');
       $('#authorize').classList.add('hidden');
       $('#consent').classList.remove('hidden');
       $('#consentState').textContent = 'READY';
-      $('#result').innerHTML = '<div class="success">ALLOWED · policy passed. Consent is the next step.</div>';
+      $('#result').textContent = 'Approved by policy — now approve the debit.';
+      $('#result').className = 'success';
     } else {
-      $('#result').innerHTML = `<div class="verdict"><h2>${x.verdict.toUpperCase()}</h2><p>${x.reason}</p></div>`;
+      $('#result').textContent = x.reason;
+      $('#result').className = 'error';
       $('#pay').disabled = true;
     }
-  }catch(e){ $('#result').innerHTML = '<div class="error">' + e.message + '</div>'; }
+  }catch(e){ $('#result').textContent = e.message; $('#result').className = 'error'; }
 };
 
 $('#startConsent').onclick = async () => {
@@ -167,15 +212,16 @@ $('#startConsent').onclick = async () => {
     const c = await api('/api/payment-intents/' + intent.payment_intent_id + '/consent', {
       method:'POST', body:JSON.stringify({source_account: acct})});
     $('#consentState').textContent = c.wema_state;
-    $('#consentMsg').innerHTML = '<div class="success">CONSENT PENDING · ' + (c.message || 'awaiting ALAT Authenticator approval') + '</div>';
+    $('#consentMsg').textContent = 'Consent started — awaiting your approval.';
+    $('#consentMsg').className = 'success';
     if (c.demo_code){
       $('#approval').classList.remove('hidden');
       $('#consentCode').value = c.demo_code;
       $('#codeHint').textContent = 'Sandbox demo code prefilled: ' + c.demo_code;
     } else {
-      $('#codeHint').textContent = 'Approving in the ALAT app now. MONC will poll Wema — use REFRESH STATUS.';
+      $('#codeHint').textContent = 'Approve in the ALAT app now. MONC polls Wema — use REFRESH STATUS.';
     }
-  }catch(e){ $('#consentMsg').innerHTML = '<div class="error">' + e.message + '</div>'; }
+  }catch(e){ $('#consentMsg').textContent = e.message; $('#consentMsg').className = 'error'; }
 };
 
 $('#approve').onclick = async () => {
@@ -183,16 +229,19 @@ $('#approve').onclick = async () => {
     const code = $('#consentCode').value.trim();
     const s = await api('/api/payment-intents/' + intent.payment_intent_id + '/approve', {
       method:'POST', body:JSON.stringify({code: code || null})});
+    document.getElementById('stepConsent').classList.remove('current');
+    document.getElementById('stepConsent').classList.add('done');
+    document.getElementById('stepSettled').classList.add('current');
     $('#consent').classList.add('hidden');
     showLifecycle(s);
-  }catch(e){ $('#consentMsg').innerHTML = '<div class="error">' + e.message + '</div>'; }
+  }catch(e){ $('#consentMsg').textContent = e.message; $('#consentMsg').className = 'error'; }
 };
 
 $('#refreshStatus').onclick = async () => {
   try{
     const s = await api('/api/payment-intents/' + intent.payment_intent_id + '/status');
     showLifecycle(s);
-  }catch(e){ $('#final').innerHTML = '<div class="error">' + e.message + '</div>'; }
+  }catch(e){ $('#final').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; }
 };
 
 load();
