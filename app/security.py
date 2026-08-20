@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 import secrets
+import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -37,16 +38,26 @@ def random_token(size: int = 32) -> str:
     return secrets.token_urlsafe(size)
 
 
-def session_token(user_id: int) -> str:
+def session_token(user_id: int, jti: str | None = None, lifetime_days: int = 7) -> str:
+    """Issue a JWT with a jti claim. Returns the encoded token.
+
+    The server-side code is responsible for persisting the session row (jti, user_id, expiry).
+    """
     now = datetime.now(timezone.utc)
-    return jwt.encode({"sub": str(user_id), "iat": now, "exp": now + timedelta(days=7)}, _secret, algorithm="HS256")
+    if not jti:
+        jti = str(uuid.uuid4())
+    payload = {"sub": str(user_id), "jti": jti, "iat": now.isoformat(), "exp": (now + timedelta(days=lifetime_days)).isoformat()}
+    return jwt.encode(payload, _secret, algorithm="HS256")
 
 
-def read_session(token: str | None) -> int | None:
+def decode_session(token: str) -> dict | None:
+    """Decode a session token and return the payload dict, or None on failure."""
     if not token:
         return None
     try:
-        return int(jwt.decode(token, _secret, algorithms=["HS256"])["sub"])
+        # Accept both ISO strings we encoded above and numeric timestamps if present
+        payload = jwt.decode(token, _secret, algorithms=["HS256"])
+        return payload
     except (jwt.PyJWTError, ValueError, KeyError):
         return None
 
