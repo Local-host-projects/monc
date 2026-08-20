@@ -3,7 +3,9 @@ import os
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 from pathlib import Path
+import base64
 
 from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
@@ -13,16 +15,25 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 import httpx
+import qrcode
 
 from .database import Base, engine, get_db, upgrade_existing_schema
-from .models import AuthorizationLog, Instrument, Merchant, PaymentIntent, TokenTransfer, User
+from .models import (
+    AuthorizationLog,
+    Instrument,
+    Merchant,
+    PaymentIntent,
+    TokenTransfer,
+    User,
+    SessionToken,
+)
 from .policy import compile_rules, evaluate
 from .security import (
     decrypt_policy,
     encrypt_policy,
     hash_password,
     random_token,
-    read_session,
+    decode_session,
     session_token,
     sha256,
     verify_browser_signature,
@@ -117,8 +128,21 @@ class ApproveIn(BaseModel):
 def current_user(
     monc_session: str | None = Cookie(default=None), db: Session = Depends(get_db)
 ) -> User:
-    user_id = read_session(monc_session)
-    user = db.get(User, user_id) if user_id else None
+    payload = decode_session(monc_session)
+    if not payload:
+        raise HTTPException(401, "Sign in required")
+    jti = payload.get("jti")
+    if not jti:
+        raise HTTPException(401, "Sign in required")
+    session_row = db.get(SessionToken, jti)
+    now = datetime.now(timezone.utc)
+    if not session_row or session_row.revoked or session_row.expires_at <= now:
+        raise HTTPException(401, "Sign in required")
+    try:
+        user_id = int(payload.get("sub"))
+    except Exception:
+        raise HTTPException(401, "Sign in required")
+    user = db.get(User, user_id)
     if not user:
         raise HTTPException(401, "Sign in required")
     return user
@@ -164,6 +188,16 @@ def serialize_intent(intent: PaymentIntent) -> dict:
     }
 
 
+@app.get("/token_qr_dataurl")
+def token_qr_dataurl(token: str):
+    """Return a data URL (PNG base64) for a token to render as an <img> source on the client."""
+    img = qrcode.make(token)
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    data = base64.b64encode(buf.getvalue()).decode()
+    return {"data_url": f"data:image/png;base64,{data}"}
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     return templates.TemplateResponse(request, "index.html", {})
@@ -198,7 +232,15 @@ def register(payload: RegisterIn, response: Response, db: Session = Depends(get_
     )
     db.add(user)
     db.commit()
-    response.set_cookie("monc_session", session_token(user.id), httponly=True, samesite="strict", secure=COOKIE_SECURE, path="/", max_age=7 * 24 * 60 * 60)
+
+    # create session row and set cookie
+    jti = str(uuid.uuid4())
+    token = session_token(user.id, jti)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    session_row = SessionToken(jti=jti, user_id=user.id, created_at=datetime.now(timezone.utc), expires_at=expires_at, revoked=False)
+    db.add(session_row)
+    db.commit()
+    response.set_cookie("monc_session", token, httponly=True, samesite="strict", secure=COOKIE_SECURE, path="/", max_age=7 * 24 * 60 * 60)
     return {"user": user_view(user), "demo_verification_code": code}
 
 
@@ -207,7 +249,16 @@ def login(payload: LoginIn, response: Response, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.email == payload.email.strip().lower()))
     if not user or not verify_password(user.password_hash, payload.password):
         raise HTTPException(401, "Invalid email or password")
-    response.set_cookie("monc_session", session_token(user.id), httponly=True, samesite="strict", secure=COOKIE_SECURE, path="/", max_age=7 * 24 * 60 * 60)
+
+    # create session row and set cookie
+    jti = str(uuid.uuid4())
+    token = session_token(user.id, jti)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+    session_row = SessionToken(jti=jti, user_id=user.id, created_at=datetime.now(timezone.utc), expires_at=expires_at, revoked=False)
+    db.add(session_row)
+    db.commit()
+
+    response.set_cookie("monc_session", token, httponly=True, samesite="strict", secure=COOKIE_SECURE, path="/", max_age=7 * 24 * 60 * 60)
     return {"user": user_view(user)}
 
 
@@ -222,7 +273,13 @@ def verify_account(payload: VerifyIn, user: User = Depends(current_user), db: Se
 
 
 @app.post("/api/auth/logout")
-def logout(response: Response):
+def logout(response: Response, monc_session: str | None = Cookie(default=None), db: Session = Depends(get_db)):
+    payload = decode_session(monc_session)
+    if payload and payload.get("jti"):
+        row = db.get(SessionToken, payload["jti"])
+        if row:
+            row.revoked = True
+            db.commit()
     response.delete_cookie("monc_session")
     return {"ok": True}
 
@@ -289,7 +346,7 @@ def create_instrument(payload: InstrumentIn, user: User = Depends(verified_user)
         alias=payload.alias,
         locator_hash=locator_hash,
         encrypted_server_half=payload.encrypted_server_half,
-        public_key_jwk=json.dumps(payload.public_key_jwk, separators=(",", ":")),
+        public_key_jwk=json.dumps(payload.public_key_jwk, separators=("," ,":")),
         encrypted_policy=encrypted_policy,
         policy_nonce=nonce,
     )
