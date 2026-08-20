@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONC · checkout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<script>(function(){try{var t=localStorage.getItem('moncTheme');document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){document.documentElement.dataset.theme='dark'}})();</script>
+</head>
+<body>
+<main class="wrap">
+  <header class="topbar">
+    <b class="brand">MONC</b>
+    <span class="descriptor">CHECKOUT · THIRD-PARTY PAYMENT PROPOSAL</span>
+    <span class="grow"></span>
+    <span class="clock"></span>
+    <button class="iconbtn theme" type="button" aria-label="Toggle light or dark theme">◐</button>
+  </header>
+  <section class="hero">
+    <div class="eyebrow">// REVIEW · AUTHORIZE · CONSENT · SETTLE</div>
+    <h1>DOES THIS<br>FIT YOUR RULES?</h1>
+    <p>The merchant has proposed a fixed transaction. MONC verifies the exact checkout, your verified account, your instrument and your owner-defined policy. Authorization and settlement are separate: MONC says <b>yes</b>, then the ALAT Authenticator approves the actual Wema debit.</p>
+  </section>
+
+  <section class="panel">
+    <div class="ph"><b>Payment proposal</b><span id="expiry">LOADING</span></div>
+    <div class="pb"><div id="intent" class="rows"></div></div>
+  </section>
+
+  <section id="authorize" class="panel">
+    <div class="ph"><b>Authorize as owner</b><span>CLIENT-SIDE PATTERN PROOF</span></div>
+    <div class="pb">
+      <label>MONC token · paste or upload the QR export</label>
+      <textarea id="token" placeholder="MONC1...."></textarea>
+      <label>4×4 phone unlock pattern</label>
+      <div id="pattern" class="pattern"></div>
+      <p id="patternStatus" class="hint">The pattern stays in this browser and never leaves it.</p>
+      <button class="btn primary" id="pay">AUTHORIZE EXACT PAYMENT →</button>
+      <div id="result"></div>
+    </div>
+  </section>
+
+  <section id="consent" class="panel hidden">
+    <div class="ph"><b>ALAT Authenticator consent</b><span id="consentState">NOT STARTED</span></div>
+    <div class="pb">
+      <div class="notice"><b>How funding works now:</b> MONC does not move money on authorization. After your rule-passing verdict, the ALAT Authenticator asks <i>you</i> to approve the exact debit from your Wema account, then Wema settles the merchant payout.</div>
+      <div class="grid g2" style="margin-top:14px">
+        <div>
+          <label>Your Wema / ALAT account number</label>
+          <input id="sourceAccount" inputmode="numeric" placeholder="10 digits" maxlength="10">
+          <button class="btn primary" id="startConsent">START ALAT AUTHENTICATOR CONSENT →</button>
+        </div>
+        <div id="approval" class="hidden">
+          <label>ALAT Authenticator approval code</label>
+          <input id="consentCode" inputmode="numeric" placeholder="6 digits">
+          <p class="hint" id="codeHint">In sandbox the demo code is prefilled. In a live deployment the customer approves inside the ALAT app; MONC only polls.</p>
+          <button class="btn" id="approve">APPROVE DEBIT (SANDBOX)</button>
+        </div>
+      </div>
+      <div id="consentMsg"></div>
+    </div>
+  </section>
+
+  <section id="lifecycle" class="panel hidden">
+    <div class="ph"><b>Payment lifecycle</b><span id="lifecycleMode">STATUS</span></div>
+    <div class="pb">
+      <div id="stages" class="rows"></div>
+      <div class="actions">
+        <button class="btn small" id="refreshStatus">REFRESH STATUS</button>
+      </div>
+      <div id="final" class="notice hidden" style="margin-top:14px"></div>
+    </div>
+  </section>
+
+  <footer class="foot">MONC · PAYMENT INTENT · POLICY CHECK → CONSENT → DEBIT → SETTLEMENT · FAIL CLOSED</footer>
+</main>
+<script src="/static/app.js"></script>
+<script>
+let intent, pat = makePattern($('#pattern'));
+
+function renderIntent(){
+  $('#intent').innerHTML = Object.entries({
+    merchant: intent.merchant.business_name,
+    'merchant status': intent.merchant.account_verified ? 'verified' : 'not verified',
+    amount: (intent.amount_minor / 100).toLocaleString() + ' ' + intent.currency,
+    product: intent.product_name,
+    category: intent.product_type,
+    'product code': intent.product_code || 'not supplied',
+    domain: intent.checkout_domain,
+    initiator: intent.initiator_type,
+    order: intent.order_id,
+    status: intent.status,
+    expires: new Date(intent.expires_at).toLocaleString(),
+  }).map(([k, v]) => `<div class="row"><span class="key">${k}</span><span class="dots"></span><span class="val">${v}</span></div>`).join('');
+  $('#expiry').textContent = 'EXPIRES ' + new Date(intent.expires_at).toLocaleTimeString();
+}
+
+function stage(k, v){ return `<div class="row"><span class="key">${k}</span><span class="dots"></span><span class="val">${v}</span></div>`; }
+
+function showLifecycle(s){
+  $('#lifecycle').classList.remove('hidden');
+  $('#lifecycleMode').textContent = 'WEMA MODE · ' + s.wema_mode;
+  $('#stages').innerHTML =
+    stage('policy', s.status === 'denied' ? 'DENIED' : 'ALLOWED') +
+    stage('consent', s.wema_state) +
+    stage('source account', s.source_account_masked || '—') +
+    stage('wema reference', s.wema_reference || '—') +
+    stage('merchant debit', s.settlement_reference || '—') +
+    stage('settlement', s.status) +
+    stage('merchant credited', s.merchant_credited ? 'YES' : 'NO') +
+    stage('merchant ledger', (s.merchant_credit_minor / 100).toLocaleString() + ' NGN') +
+    (s.state_reason ? stage('reason', s.state_reason) : '');
+  const terminal = ['successful','failed','reversed','denied','expired'].includes(s.status);
+  const f = $('#final');
+  if (terminal){
+    f.classList.remove('hidden');
+    f.innerHTML = s.status === 'successful'
+      ? '<b>SETTLED.</b> Consent approved, Wema debited the customer and the merchant payout is recorded. Policy + consent + settlement are all exact.'
+      : '<b>FAIL CLOSED.</b> MONC refused or Wema did not settle. Nothing was credited to the merchant.';
+  } else {
+    f.classList.add('hidden');
+  }
+}
+
+async function load(){
+  try{
+    intent = await api('/api/payment-intents/{{ intent_id }}');
+    renderIntent();
+    if (intent.status !== 'pending'){
+      const s = await api('/api/payment-intents/' + intent.payment_intent_id + '/status');
+      showLifecycle(s);
+    }
+  }catch(e){ $('#intent').innerHTML = '<div class="error">' + e.message + '</div>'; }
+}
+
+$('#pay').onclick = async () => {
+  try{
+    if (pat.length() < 4) throw Error('Draw at least 4 pattern cells');
+    const token = tokenDecode($('#token').value.trim());
+    const key = await patternKey(pat.value(), token.instrument_id);
+    const server = await api('/api/instruments/resolve', {method:'POST', body:JSON.stringify({locator: token.locator})});
+    await open(key, JSON.parse(server.encrypted_server_half), 'MONC-HALF-' + token.instrument_id);
+    const privateJwk = JSON.parse(dec.decode(await open(key, token.private_box, 'MONC-SIGN-' + token.instrument_id)));
+    const privateKey = await crypto.subtle.importKey('jwk', privateJwk, {name:'ECDSA', namedCurve:'P-256'}, false, ['sign']);
+    const message = `MONC-AUTH-V1|${intent.payment_intent_id}|${intent.context_hash}|${token.instrument_id}`;
+    const raw = new Uint8Array(await crypto.subtle.sign({name:'ECDSA', hash:'SHA-256'}, privateKey, enc.encode(message)));
+    const x = await api('/api/payment-intents/' + intent.payment_intent_id + '/authorize', {
+      method:'POST', body:JSON.stringify({locator: token.locator, signature: b64(raw)})});
+    if (x.verdict === 'allowed' && x.next === 'consent'){
+      $('#authorize').classList.add('hidden');
+      $('#consent').classList.remove('hidden');
+      $('#consentState').textContent = 'READY';
+      $('#result').innerHTML = '<div class="success">ALLOWED · policy passed. Consent is the next step.</div>';
+    } else {
+      $('#result').innerHTML = `<div class="verdict"><h2>${x.verdict.toUpperCase()}</h2><p>${x.reason}</p></div>`;
+      $('#pay').disabled = true;
+    }
+  }catch(e){ $('#result').innerHTML = '<div class="error">' + e.message + '</div>'; }
+};
+
+$('#startConsent').onclick = async () => {
+  try{
+    const acct = $('#sourceAccount').value.trim();
+    if (!/^\d{10}$/.test(acct)) throw Error('Enter a 10-digit Wema / ALAT account number');
+    const c = await api('/api/payment-intents/' + intent.payment_intent_id + '/consent', {
+      method:'POST', body:JSON.stringify({source_account: acct})});
+    $('#consentState').textContent = c.wema_state;
+    $('#consentMsg').innerHTML = '<div class="success">CONSENT PENDING · ' + (c.message || 'awaiting ALAT Authenticator approval') + '</div>';
+    if (c.demo_code){
+      $('#approval').classList.remove('hidden');
+      $('#consentCode').value = c.demo_code;
+      $('#codeHint').textContent = 'Sandbox demo code prefilled: ' + c.demo_code;
+    } else {
+      $('#codeHint').textContent = 'Approving in the ALAT app now. MONC will poll Wema — use REFRESH STATUS.';
+    }
+  }catch(e){ $('#consentMsg').innerHTML = '<div class="error">' + e.message + '</div>'; }
+};
+
+$('#approve').onclick = async () => {
+  try{
+    const code = $('#consentCode').value.trim();
+    const s = await api('/api/payment-intents/' + intent.payment_intent_id + '/approve', {
+      method:'POST', body:JSON.stringify({code: code || null})});
+    $('#consent').classList.add('hidden');
+    showLifecycle(s);
+  }catch(e){ $('#consentMsg').innerHTML = '<div class="error">' + e.message + '</div>'; }
+};
+
+$('#refreshStatus').onclick = async () => {
+  try{
+    const s = await api('/api/payment-intents/' + intent.payment_intent_id + '/status');
+    showLifecycle(s);
+  }catch(e){ $('#final').innerHTML = '<div class="error">' + e.message + '</div>'; }
+};
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MONC · merchant console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/app.css">
+<script>(function(){try{var t=localStorage.getItem('moncTheme');document.documentElement.dataset.theme=t==='light'?'light':'dark'}catch(e){document.documentElement.dataset.theme='dark'}})();</script>
+</head>
+<body>
+<main class="wrap">
+  <header class="topbar"><b class="brand">MONC</b><span class="descriptor">MERCHANT CONSOLE · WEMA SETTLEMENT ADAPTER</span><span class="grow"></span><span class="clock"></span><button class="iconbtn theme" type="button" aria-label="Toggle light or dark theme">◐</button></header>
+  <nav class="nav"><a href="/">HOME</a><a href="/app">CUSTOMER</a><a class="active" href="/merchant">MERCHANT</a></nav>
+  <section class="hero"><div class="eyebrow">// VERIFY · CREATE INTENT · RECEIVE CREDIT</div><h1>THE MERCHANT<br>CONTROL PLANE</h1><p>Connect a Wema settlement account, receive a minimal merchant API key, and send MONC an exact signed checkout context. You never see the customer’s card, pattern, token package, or reconstructed key.</p></section>
+
+  <section id="auth" class="panel">
+    <div class="ph"><b>Merchant account access</b><span>VERIFIED MONC USER REQUIRED</span></div>
+    <div class="grid g2">
+      <div class="authbox"><h3>Register user</h3><label for="regName">Name</label><input id="regName" placeholder="Your name"><label for="regEmail">Business email</label><input id="regEmail" placeholder="Email" type="email"><label for="regPass">Password</label><input id="regPass" type="password" placeholder="10+ characters"><button class="btn primary" id="register">CREATE ACCOUNT</button></div>
+      <div class="authbox"><h3>Sign in</h3><label for="loginEmail">Email</label><input id="loginEmail" placeholder="Email" type="email"><label for="loginPass">Password</label><input id="loginPass" type="password" placeholder="Password"><button class="btn" id="login">SIGN IN</button><div id="msg" role="status" aria-live="polite"></div></div>
+    </div>
+  </section>
+
+  <section id="verify" class="panel hidden"><div class="ph"><b>Verify identity</b><span>MERCHANT AND THIRD PARTY BOTH NEED ACCOUNTS</span></div><div class="pb"><label for="code">Demo verification code</label><input id="code" placeholder="6 digits"><button class="btn primary" id="verifyBtn">VERIFY</button></div></section>
+
+  <div id="merchantConsole" class="hidden">
+    <section id="onboard" class="panel"><div class="ph"><b>Minimal merchant onboarding</b><span>WEMA ACCOUNT ENQUIRY · SANDBOX / PLAYGROUND</span></div><div class="pb"><div class="notice"><b>Account verification:</b> sandbox mode uses a deterministic account enquiry. Playground mode uses the configured ALAT account enquiry endpoint.</div><label for="business">Business name</label><input id="business" placeholder="Example Foods Limited"><label for="type">Merchant type</label><input id="type" placeholder="restaurant"><label for="city">City</label><input id="city" placeholder="Lagos"><label for="account">Wema settlement account</label><input id="account" inputmode="numeric" maxlength="10" placeholder="10 digits"><button class="btn primary" id="connect">VERIFY AND CONNECT ACCOUNT →</button><div id="onboardMsg" role="status" aria-live="polite"></div></div></section>
+
+    <section id="summary" class="panel hidden"><div class="ph"><b>Merchant status</b><span>SETTLEMENT DESTINATION</span></div><div class="pb"><div id="merchantRows" class="rows"></div><div class="notice" style="margin-top:14px"><b>API key:</b> generated once. Store it in your backend environment, never in browser code or an AI agent prompt.</div><div id="apiKey" class="tokenbox" style="margin-top:10px"></div></div></section>
+
+    <section class="panel"><div class="ph"><b>Create checkout intent</b><span>LOCKED AMOUNT · PRODUCT · DOMAIN · EXPIRY</span></div><div class="pb"><div class="grid g2"><div><label for="order">Order ID</label><input id="order" value="ORDER-1001"><label for="amount">Amount · minor units</label><input id="amount" value="450000" inputmode="numeric"><label for="currency">Currency</label><input id="currency" value="NGN"></div><div><label for="product">Product name</label><input id="product" value="University textbook"><label for="productType">Product type</label><input id="productType" value="education"><label for="productCode">Product code / ISBN</label><input id="productCode" value="9780132350884"><label for="domain">Checkout domain</label><input id="domain" value="shop.example.ng"></div></div><label for="initiator">Initiated by</label><select id="initiator"><option value="human">Human</option><option value="agent">AI agent</option></select><button class="btn primary" id="createIntent">CREATE PAYMENT INTENT →</button><div id="intentMsg" role="status" aria-live="polite"></div></div></section>
+
+    <section class="panel"><div class="ph"><b>Recent intents</b><span>AUTHORIZATION IS NOT SETTLEMENT</span></div><div class="pb" id="intents"><span class="hint">Connect a settlement account to load intents.</span></div></section>
+  </div>
+  <footer class="foot">MONC · MERCHANT API · SIGNED PAYMENT CONTEXT · WEMA SETTLEMENT BOUNDARY</footer>
+</main>
+<script src="/static/app.js"></script>
+<script>
+let apiKey = localStorage.getItem('moncMerchantApiKey') || '', me = null;
+function out(selector, text, ok = false){ const el = $(selector); if(!el) return; el.textContent = text; el.className = ok ? 'success' : 'error'; }
+function showMerchant(m){
+  $('#summary').classList.remove('hidden');
+  $('#merchantRows').innerHTML = [['business',m.business_name],['type',m.merchant_type],['city',m.city],['settlement',`${m.account_name} · ${m.account_number_masked}`],['status',m.account_verified?'VERIFIED':'PENDING'],['credit',`${(m.credit_balance_minor/100).toFixed(2)} ${m.country==='NG'?'NGN':''}`]].map(([k,v])=>`<div class="row"><span class="key">${esc(v === undefined ? '' : k)}</span><span class="dots"></span><span class="val">${esc(v)}</span></div>`).join('');
+}
+async function loadSummary(){
+  try { const x = await api('/api/merchant/summary'); showMerchant(x.merchant); $('#intents').innerHTML = x.payment_intents.length ? x.payment_intents.map(i=>`<div class="intent"><b>${esc(i.order_id)} · ${esc((i.amount_minor/100).toLocaleString())} ${esc(i.currency)}</b><small>${esc(i.product_name)} · ${esc(i.status)}</small><a class="btn small" href="/checkout/${encodeURIComponent(i.payment_intent_id)}">OPEN CHECKOUT</a></div>`).join('') : '<span class="hint">No payment intents yet.</span>'; } catch(e) { out('#intents', e.message); }
+}
+async function load(){
+  try { me = await api('/api/me'); if(!me.user.verified){ $('#verify').classList.remove('hidden'); return; } $('#auth').classList.add('hidden'); $('#merchantConsole').classList.remove('hidden'); if(me.merchant){ $('#onboard').classList.add('hidden'); showMerchant(me.merchant); await loadSummary(); } } catch(e) { if(e.status !== 401) out('#msg', e.message); }
+}
+$('#register').onclick = async()=>{ try{ const x=await api('/api/auth/register',{method:'POST',body:JSON.stringify({email:$('#regEmail').value,display_name:$('#regName').value,password:$('#regPass').value})}); out('#msg','Account created. Code: '+x.demo_verification_code,true); $('#verify').classList.remove('hidden'); $('#code').focus(); }catch(e){out('#msg',e.message);} };
+$('#login').onclick = async()=>{ try{ await api('/api/auth/login',{method:'POST',body:JSON.stringify({email:$('#loginEmail').value,password:$('#loginPass').value})}); await load(); }catch(e){out('#msg',e.message);} };
+$('#verifyBtn').onclick = async()=>{ try{ await api('/api/auth/verify',{method:'POST',body:JSON.stringify({code:$('#code').value})}); await load(); }catch(e){out('#msg',e.message);} };
+$('#connect').onclick = async()=>{ try{ const x=await api('/api/merchants',{method:'POST',body:JSON.stringify({business_name:$('#business').value,merchant_type:$('#type').value,city:$('#city').value,account_number:$('#account').value})}); apiKey=x.api_key; localStorage.setItem('moncMerchantApiKey',apiKey); $('#apiKey').textContent=apiKey; showMerchant(x.merchant); $('#onboard').classList.add('hidden'); out('#onboardMsg','Account connected',true); await loadSummary(); }catch(e){out('#onboardMsg',e.message);} };
+$('#createIntent').onclick = async()=>{ if(!apiKey){out('#intentMsg','Connect a settlement account first');return;} try{ const x=await api('/api/v1/payment-intents',{method:'POST',headers:{'X-MONC-API-Key':apiKey},body:JSON.stringify({order_id:$('#order').value,amount_minor:Number($('#amount').value),currency:$('#currency').value,product_name:$('#product').value,product_type:$('#productType').value,product_code:$('#productCode').value,checkout_domain:$('#domain').value,initiator_type:$('#initiator').value})}); out('#intentMsg','Intent created: '+x.payment_intent_id+' · '+x.checkout_url,true); await loadSummary(); }catch(e){out('#intentMsg',e.message);} };
+load();
+</script>
+</body>
+</html>
