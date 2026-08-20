@@ -10,6 +10,16 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class SessionToken(Base):
+    __tablename__ = "sessions"
+
+    jti: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
 class User(Base):
     __tablename__ = "users"
 

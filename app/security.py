@@ -61,7 +61,7 @@ def session_token(user_id: int, jti: str | None = None, lifetime_days: int = 7) 
     now = datetime.now(timezone.utc)
     if not jti:
         jti = str(uuid.uuid4())
-    payload = {"sub": str(user_id), "jti": jti, "iat": now.isoformat(), "exp": (now + timedelta(days=lifetime_days)).isoformat()}
+    payload = {"sub": str(user_id), "jti": jti, "iat": int(now.timestamp()), "exp": int((now + timedelta(days=lifetime_days)).timestamp())}
     return jwt.encode(payload, _secret, algorithm="HS256")
 
 

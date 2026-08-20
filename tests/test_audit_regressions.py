@@ -76,3 +76,58 @@ def test_failed_funding_never_records_settlement_or_credits_merchant(client):
         assert intent.settlement_reference is None
         assert merchant.credit_balance_minor == 0
         assert not intent.merchant_credited
+
+
+from tests.conftest import register_verified
+
+
+def test_session_survives_requests_and_logout_revokes(client):
+    r = client.post("/api/auth/register", json={"email": "a@b.c", "display_name": "A B", "password": "password-123"})
+    assert r.status_code == 200, r.text
+    code = r.json()["demo_verification_code"]
+    assert client.post("/api/auth/verify", json={"code": code}).status_code == 200
+    assert client.get("/api/me").status_code == 200
+    assert client.post("/api/auth/logout").status_code == 200
+    assert client.get("/api/me").status_code == 401
+
+
+def test_access_token_authenticates_bearer_requests(client):
+    r = client.post("/api/auth/register", json={"email": "b@c.d", "display_name": "B C", "password": "password-123"})
+    assert r.status_code == 200, r.text
+    access_token = r.json()["access_token"]
+    code = r.json()["demo_verification_code"]
+    assert client.post("/api/auth/verify", json={"code": code}).status_code == 200
+    client.cookies.clear()
+    assert client.get("/api/me").status_code == 401  # no cookie present
+    response = client.get("/api/me", headers={"Authorization": f"Bearer {access_token}"})
+    assert response.status_code == 200
+
+
+def test_refresh_rotates_session_cookie(client):
+    r = client.post("/api/auth/register", json={"email": "c@d.e", "display_name": "C D", "password": "password-123"})
+    assert r.status_code == 200, r.text
+    assert client.post("/api/auth/verify", json={"code": r.json()["demo_verification_code"]}).status_code == 200
+    old_cookie = client.cookies.get("monc_session")
+    refreshed = client.post("/api/auth/refresh")
+    assert refreshed.status_code == 200, refreshed.text
+    new_cookie = client.cookies.get("monc_session")
+    assert new_cookie and new_cookie != old_cookie
+    assert client.get("/api/me").status_code == 200
+    assert client.post("/api/auth/logout").status_code == 200
+    assert client.get("/api/me").status_code == 401
+
+
+def test_compile_policy_endpoint_previews_policy_and_tests(client):
+    register_verified(client, "d@e.f", "D E")
+    r = client.post(
+        "/api/compile_policy",
+        json={"rules": ["Only allow food and transport purchases", "Maximum NGN 10,000 per transaction"]},
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["policy"]["compiled"]
+    assert data["tests"]
+    results = {t["label"]: t["allowed"] for t in data["tests"]}
+    assert results["within limits"] is True
+    assert results["over the maximum"] is False
+    assert results["out-of-scope product"] is False

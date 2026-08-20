@@ -8,3 +8,5 @@ argon2-cffi==25.1.0
 PyJWT==2.10.1
 httpx==0.28.1
 pytest==8.4.1
+qrcode==8.2
+pillow==11.3.0

@@ -32,6 +32,7 @@ from .security import (
     decrypt_policy,
     encrypt_policy,
     hash_password,
+    issue_access_token,
     random_token,
     decode_session,
     session_token,
@@ -117,6 +118,10 @@ class AuthorizeIn(BaseModel):
     signature: str
 
 
+class CompileIn(BaseModel):
+    rules: list[str] = Field(min_length=1, max_length=20)
+
+
 class ConsentIn(BaseModel):
     source_account: str = Field(pattern="^[0-9]{10}$", description="Customer Wema/ALAT account number")
 
@@ -126,9 +131,14 @@ class ApproveIn(BaseModel):
 
 
 def current_user(
-    monc_session: str | None = Cookie(default=None), db: Session = Depends(get_db)
+    monc_session: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
 ) -> User:
-    payload = decode_session(monc_session)
+    token = monc_session
+    if not token and authorization and authorization.lower().startswith("bearer "):
+        token = authorization[len("bearer "):]
+    payload = decode_session(token)
     if not payload:
         raise HTTPException(401, "Sign in required")
     jti = payload.get("jti")
@@ -136,7 +146,7 @@ def current_user(
         raise HTTPException(401, "Sign in required")
     session_row = db.get(SessionToken, jti)
     now = datetime.now(timezone.utc)
-    if not session_row or session_row.revoked or session_row.expires_at <= now:
+    if not session_row or session_row.revoked or session_row.expires_at.replace(tzinfo=timezone.utc) <= now:
         raise HTTPException(401, "Sign in required")
     try:
         user_id = int(payload.get("sub"))
@@ -186,6 +196,32 @@ def serialize_intent(intent: PaymentIntent) -> dict:
         "source_account_masked": intent.source_account_masked,
         "state_reason": intent.state_reason,
     }
+
+
+@app.post("/api/compile_policy")
+def compile_policy(payload: CompileIn, user: User = Depends(verified_user)):
+    """Compile natural-language rules and preview deterministic evaluation against sample contexts."""
+    policy = compile_rules(payload.rules)
+    now = datetime.now(timezone.utc)
+    samples = [
+        {
+            "label": "within limits",
+            "context": {"amount_minor": 5000, "product_name": "Lunch", "product_type": "food", "city": "lagos", "merchant_verified": True, "recurring": False},
+        },
+        {
+            "label": "over the maximum",
+            "context": {"amount_minor": 2_000_000, "product_name": "Lunch", "product_type": "food", "city": "lagos", "merchant_verified": True, "recurring": False},
+        },
+        {
+            "label": "out-of-scope product",
+            "context": {"amount_minor": 500, "product_name": "Whisky", "product_type": "alcohol", "city": "lagos", "merchant_verified": True, "recurring": False},
+        },
+    ]
+    tests = []
+    for sample in samples:
+        verdict = evaluate(policy, sample["context"], now)
+        tests.append({"label": sample["label"], "allowed": verdict.allowed, "reason": verdict.reason})
+    return {"policy": policy, "tests": tests}
 
 
 @app.get("/token_qr_dataurl")
@@ -241,7 +277,7 @@ def register(payload: RegisterIn, response: Response, db: Session = Depends(get_
     db.add(session_row)
     db.commit()
     response.set_cookie("monc_session", token, httponly=True, samesite="strict", secure=COOKIE_SECURE, path="/", max_age=7 * 24 * 60 * 60)
-    return {"user": user_view(user), "demo_verification_code": code}
+    return {"user": user_view(user), "demo_verification_code": code, "access_token": issue_access_token(user.id, jti)}
 
 
 @app.post("/api/auth/login")
@@ -259,7 +295,31 @@ def login(payload: LoginIn, response: Response, db: Session = Depends(get_db)):
     db.commit()
 
     response.set_cookie("monc_session", token, httponly=True, samesite="strict", secure=COOKIE_SECURE, path="/", max_age=7 * 24 * 60 * 60)
-    return {"user": user_view(user)}
+    return {"user": user_view(user), "access_token": issue_access_token(user.id, jti)}
+
+
+@app.post("/api/auth/refresh")
+def refresh_session(
+    response: Response, monc_session: str | None = Cookie(default=None), db: Session = Depends(get_db)
+):
+    payload = decode_session(monc_session)
+    if not payload or not payload.get("jti"):
+        raise HTTPException(401, "Sign in required")
+    row = db.get(SessionToken, payload["jti"])
+    now = datetime.now(timezone.utc)
+    if not row or row.revoked or row.expires_at.replace(tzinfo=timezone.utc) <= now:
+        raise HTTPException(401, "Session expired or revoked")
+    user = db.get(User, row.user_id)
+    if not user:
+        raise HTTPException(401, "Sign in required")
+    row.revoked = True
+    jti = str(uuid.uuid4())
+    expires_at = now + timedelta(days=7)
+    db.add(SessionToken(jti=jti, user_id=user.id, created_at=now, expires_at=expires_at, revoked=False))
+    db.commit()
+    token = session_token(user.id, jti)
+    response.set_cookie("monc_session", token, httponly=True, samesite="strict", secure=COOKIE_SECURE, path="/", max_age=7 * 24 * 60 * 60)
+    return {"ok": True, "user": user_view(user), "access_token": issue_access_token(user.id, jti)}
 
 
 @app.post("/api/auth/verify")
@@ -346,7 +406,7 @@ def create_instrument(payload: InstrumentIn, user: User = Depends(verified_user)
         alias=payload.alias,
         locator_hash=locator_hash,
         encrypted_server_half=payload.encrypted_server_half,
-        public_key_jwk=json.dumps(payload.public_key_jwk, separators=("," ,":")),
+        public_key_jwk=json.dumps(payload.public_key_jwk, separators=(",", ":")),
         encrypted_policy=encrypted_policy,
         policy_nonce=nonce,
     )

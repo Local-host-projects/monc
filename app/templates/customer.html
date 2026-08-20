@@ -129,6 +129,7 @@ No purchases after 10 PM</textarea>
       <div class="ph"><b>MONC token</b><span>TRANSFERABLE · OWNERSHIP REQUIRES A VERIFIED ACCOUNT</span></div>
       <div class="pb">
         <div id="tokenText" class="tokenbox"></div>
+        <img id="tokenQR" class="qrcode" alt="MONC token QR code">
         <div class="actions">
           <button class="btn small" id="downloadToken">DOWNLOAD TOKEN</button>
         </div>
@@ -260,6 +261,8 @@ $('#issueBtn').onclick = async () => {
     currentToken = token;
     $('#tokenPanel').classList.remove('hidden');
     $('#tokenText').textContent = token;
+    const qr = await api('/token_qr_dataurl?token=' + encodeURIComponent(token));
+    $('#tokenQR').src = qr.data_url;
     $('#issueResult').textContent = 'ISSUED · encrypted locally · ' + saved.instrument_id;
     $('#issueResult').className = 'success';
     showSuccess();
