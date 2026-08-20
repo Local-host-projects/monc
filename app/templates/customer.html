@@ -17,10 +17,20 @@
     <span class="grow"></span>
     <span class="clock"></span>
     <button class="iconbtn theme" type="button" aria-label="Toggle light or dark theme">◐</button>
+    <button id="logoutBtn" class="btn small" style="margin-left:8px;" aria-label="Logout">LOG OUT</button>
   </header>
   <nav class="nav">
     <a href="/">HOME</a><a class="active" href="/app">CUSTOMER</a><a href="/merchant">MERCHANT</a>
   </nav>
+
+  <!-- Loading / Success overlays -->
+  <div id="overlay" class="overlay hidden" aria-hidden="true">
+    <div class="spinner" aria-hidden="true"></div>
+  </div>
+  <div id="successOverlay" class="overlay hidden" aria-hidden="true">
+    <div class="check" aria-hidden="true">✓</div>
+  </div>
+
   <section class="hero">
     <div class="eyebrow">// REGISTER · ISSUE · TRANSFER · AUTHORIZE</div>
     <h1>YOUR CONTROL<br>PLANE</h1>
@@ -76,7 +86,7 @@
     <section id="issuePanel" class="panel hidden">
       <div class="ph"><b>Issue locally</b><span>THE CARD NEVER LEAVES THIS BROWSER</span></div>
       <div class="pb">
-        <div class="notice"><b>Prototype boundary:</b> card details are encrypted in this browser. Never test with a real card in a demo environment. Production uses a PCI tokenization provider and receives a processor token, not PAN/CVV.</div>
+        <div class="notice"><b>Prototype boundary:</b> card details are encrypted in this browser. Never test with a real card in a demo environment. Production uses a PCI tokenization provider and server-side key management.</div>
         <div class="grid g2" style="margin-top:14px">
           <div>
             <label>Card number · demo only</label>
@@ -100,6 +110,13 @@ No purchases after 10 PM</textarea>
         <p class="hint">The pattern derives the key in this browser. It is never stored or transmitted.</p>
         <div id="pattern" class="pattern"></div>
         <p id="patternStatus" class="hint"></p>
+
+        <!-- Compiled policy preview from AI/compile step -->
+        <div id="compiledPolicy" class="panel small hidden">
+          <div class="ph"><b>Compiled policy (preview)</b><span>REVIEW BEFORE ISSUE</span></div>
+          <div class="pb"><pre id="compiledJson" style="white-space:pre-wrap"></pre></div>
+        </div>
+
         <div class="actions">
           <button class="btn primary" id="issueBtn">ENCRYPT AND ISSUE →</button>
           <button class="btn" id="cancelIssue">CANCEL</button>
@@ -130,7 +147,27 @@ No purchases after 10 PM</textarea>
 <script src="/static/app.js"></script>
 <script>
 let me = null, currentToken = null, pat = null;
+function $(s){return document.querySelector(s)}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function msg(t, ok = false){ const el=$('#authMsg'); el.textContent=t; el.className=ok?'success':'error'; }
+function showLoading(){ $('#overlay').classList.remove('hidden'); }
+function hideLoading(){ $('#overlay').classList.add('hidden'); }
+function showSuccess(){ $('#successOverlay').classList.remove('hidden'); setTimeout(()=>$('#successOverlay').classList.add('hidden'),1500); }
+
+async function api(path, opts={}){
+  showLoading();
+  try{
+    const headers = opts.headers || {};
+    if(!headers['Content-Type'] && opts.body) headers['Content-Type']='application/json';
+    const res = await fetch(path, {...opts, headers, credentials:'include'});
+    const txt = await res.text();
+    let data = null;
+    try{ data = txt ? JSON.parse(txt) : null }catch(e){ throw {status:res.status, message: 'Invalid JSON response'} }
+    if(!res.ok) throw {status:res.status, message: data && data.detail? data.detail : (data && data.message) || ('HTTP ' + res.status)};
+    return data;
+  }finally{ hideLoading(); }
+}
+
 async function load(){
   try{
     me = await api('/api/me');
@@ -146,15 +183,17 @@ async function load(){
     renderMe();
   }catch(e){ if(e.status!==401) msg(e.message); }
 }
+
 function renderMe(){
   const list = $('#instruments');
   list.innerHTML = me.instruments.length
-    ? me.instruments.map(x => `<div class="row"><span class="key">${esc(x.alias)}</span><span class="dots"></span><span class="val">${esc(x.status)} · ${esc(x.id.slice(0,8))}</span></div>`).join('')
+    ? me.instruments.map(x => `<div class="row"><span class="key">${esc(x.alias)}</span><span class="dots"></span><span class="val">${esc(x.status)} · ${esc(x.id.slice(0,8))}</span></div>`).join('\n')
     : '<p class="hint">No instruments yet. Issue one below.</p>';
   $('#incomingList').innerHTML = me.incoming_transfers.length
-    ? me.incoming_transfers.map(x => `<div class="intent"><b>Instrument ${esc(x.instrument_id.slice(0,8))}</b><button class="btn small accept-transfer" data-transfer-id="${esc(x.id)}">ACCEPT TOKEN</button></div>`).join('')
+    ? me.incoming_transfers.map(x => `<div class="intent"><b>Instrument ${esc(x.instrument_id.slice(0,8))}</b><button class="btn small accept-transfer" data-transfer-id="${esc(x.id)}">ACCEPT TOKEN</button></div>`).join('\n')
     : '<span class="hint">No pending transfers.</span>';
 }
+
 $('#register').onclick = async () => {
   try{
     const x = await api('/api/auth/register', {method:'POST', body:JSON.stringify({email:$('#regEmail').value, display_name:$('#regName').value, password:$('#regPass').value})});
@@ -162,31 +201,49 @@ $('#register').onclick = async () => {
     $('#verify').classList.remove('hidden');
   }catch(e){ msg(e.message); }
 };
+
 $('#login').onclick = async () => {
   try{
     await api('/api/auth/login', {method:'POST', body:JSON.stringify({email:$('#loginEmail').value, password:$('#loginPass').value})});
     await load();
   }catch(e){ msg(e.message); }
 };
+
 $('#verifyBtn').onclick = async () => {
   try{
     await api('/api/auth/verify', {method:'POST', body:JSON.stringify({code:$('#verifyCode').value})});
     await load();
   }catch(e){ msg(e.message); }
 };
+
+$('#logoutBtn').onclick = async ()=>{
+  try{ await api('/api/auth/logout', {method:'POST'}); location.reload(); }catch(e){ alert('Logout failed: '+e.message); }
+}
+
 $('#newInstrument').onclick = () => {
   $('#issuePanel').classList.remove('hidden');
   if (!pat) pat = makePattern($('#pattern'));
 };
 $('#cancelIssue').onclick = () => $('#issuePanel').classList.add('hidden');
 $('#refresh').onclick = load;
+
 $('#issueBtn').onclick = async () => {
   if (pat.length() < 4){ $('#patternStatus').textContent = 'Pattern too short. Draw at least 4 cells.'; return; }
   const id = crypto.randomUUID();
   const locator = b64(random(24));
   const rules = $('#rules').value.split('\n').map(x => x.trim()).filter(Boolean);
-  const p = pat.value();
+  $('#compiledPolicy').classList.add('hidden');
   try{
+    // Ask server to compile/validate the natural language rules (AI-assisted compile endpoint)
+    const compiled = await api('/api/compile_policy', {method:'POST', body:JSON.stringify({rules})});
+    $('#compiledJson').textContent = JSON.stringify(compiled.policy, null, 2) + '\n\nTests:\n' + JSON.stringify(compiled.tests || [], null, 2);
+    $('#compiledPolicy').classList.remove('hidden');
+    // Allow user to inspect compiled policy before continuing; if unsupported rules exist warn the user
+    if (compiled.policy && compiled.policy.unsupported && compiled.policy.unsupported.length){
+      if(!confirm('Some rules could not be compiled and will fail closed:\n\n'+compiled.policy.unsupported.join('\n')+'\n\nProceed anyway?')){ return; }
+    }
+    // proceed to generate keys and issue
+    const p = pat.value();
     const card = {number:$('#cardNumber').value.replace(/\s/g,''), expiry:$('#cardExpiry').value, name:$('#cardName').value};
     const key = await patternKey(p, id);
     const cardBox = await seal(key, JSON.stringify(card), 'MONC-CARD-' + id);
@@ -196,6 +253,7 @@ $('#issueBtn').onclick = async () => {
     const privateJwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
     const privateBox = await seal(key, JSON.stringify(privateJwk), 'MONC-SIGN-' + id);
     const token = tokenEncode({v:1, instrument_id:id, locator, card_box:cardBox, private_box:privateBox});
+
     const saved = await api('/api/instruments', {method:'POST', body:JSON.stringify({
       instrument_id:id, alias:$('#alias').value || 'MONC INSTRUMENT', locator,
       encrypted_server_half:JSON.stringify(serverBox), public_key_jwk:jwk, rules})});
@@ -204,9 +262,11 @@ $('#issueBtn').onclick = async () => {
     $('#tokenText').textContent = token;
     $('#issueResult').textContent = 'ISSUED · encrypted locally · ' + saved.instrument_id;
     $('#issueResult').className = 'success';
+    showSuccess();
     $('#tokenPanel').scrollIntoView({behavior:'smooth'});
   }catch(e){ $('#issueResult').textContent=e.message; $('#issueResult').className='error'; }
 };
+
 $('#downloadToken').onclick = () => download('monc-token.json', currentToken);
 $('#transferBtn').onclick = async () => {
   try{
@@ -214,13 +274,16 @@ $('#transferBtn').onclick = async () => {
     const r = await api('/api/transfers', {method:'POST', body:JSON.stringify({locator:x.locator, recipient_email:$('#recipient').value})});
     $('#transferMsg').textContent = 'Transfer requested: ' + r.transfer_id;
     $('#transferMsg').className = 'success';
+    showSuccess();
   }catch(e){ $('#transferMsg').textContent=e.message; $('#transferMsg').className='error'; }
 };
+
 $('#incomingList').addEventListener('click',e=>{const button=e.target.closest('.accept-transfer');if(button)accept(button.dataset.transferId);});
 async function accept(id){
   try{
     await api('/api/transfers/accept', {method:'POST', body:JSON.stringify({transfer_id:id})});
     await load();
+    showSuccess();
   }catch(e){ alert(e.message); }
 }
 load();
