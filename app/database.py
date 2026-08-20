@@ -1,3 +1,4 @@
+import json
 import os
 
 from sqlalchemy import create_engine, inspect, text
@@ -52,3 +53,18 @@ def upgrade_existing_schema() -> None:
             for name, definition in columns.items():
                 if name not in existing:
                     connection.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{name}" {definition}'))
+
+        # Create sessions table if it does not exist (simple SQLite inline migration)
+        tables = inspector.get_table_names()
+        if "sessions" not in tables:
+            connection.execute(text(
+                """
+                CREATE TABLE IF NOT EXISTS sessions (
+                    jti VARCHAR(64) PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id),
+                    created_at TIMESTAMP,
+                    expires_at TIMESTAMP,
+                    revoked BOOLEAN DEFAULT 0
+                )
+                """
+            ))
