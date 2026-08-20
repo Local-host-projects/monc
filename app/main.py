@@ -496,7 +496,9 @@ def create_merchant(payload: MerchantIn, user: User = Depends(verified_user), db
     if not result.valid:
         raise HTTPException(400, "Wema account enquiry could not verify this account")
     api_key = "monc_test_" + random_token(28)
-    city = (payload.city.strip() or result.city or "lagos").strip()
+    # Tenet: the city is collected from the authoritative source, never typed
+    # into the form. A conflicting typed value must not override the bank record.
+    city = (result.city or payload.city.strip() or "lagos").strip()
     merchant = Merchant(
         id=str(uuid.uuid4()),
         owner_id=user.id,

@@ -12,12 +12,17 @@ class BrokenGateway(SandboxWemaGateway):
 
 def sample(account: str = "0123456789", city: str = "", gateway=None):
     gw = gateway or SandboxWemaGateway()
-    enquiry = gw.verify_account(account)
+    try:
+        enquiry = gw.verify_account(account)
+    except Exception:
+        enquiry = None
     merchant = Merchant(
         id="harness", owner_id=0, business_name="Example Foods", merchant_type="restaurant",
-        city=city or enquiry.city, country="NG", account_number_masked="******" + account[-4:],
+        city=city or (enquiry.city if enquiry else "lagos"), country="NG",
+        account_number_masked="******" + account[-4:],
         settlement_account_number=account, account_fingerprint="harness",
-        account_name=enquiry.account_name, account_verified=True, api_key_hash="harness",
+        account_name=(enquiry.account_name if enquiry else "Example Foods"),
+        account_verified=True, api_key_hash="harness",
     )
     intent = PaymentIntent(
         id="harness-intent", merchant_id="harness", order_id="DEMO-1", amount_minor=450000, currency="NGN",
@@ -53,8 +58,9 @@ def test_harness_fails_closed_when_claimed_city_contradicts_source():
 
 
 def test_harness_fails_closed_when_source_is_unreachable():
-    intent, merchant = sample(gateway=BrokenGateway())
-    results = live_check_for(intent, merchant)
+    broken = BrokenGateway()
+    intent, merchant = sample(gateway=broken)
+    results = live_check_for(intent, merchant, gateway=broken)
     unverified = unverified_conditions(results)
     assert {c["condition"] for c in unverified} == {"merchant_verified", "city"}
 
