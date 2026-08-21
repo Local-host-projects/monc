@@ -17,7 +17,10 @@
     <span class="grow"></span>
     <span class="clock"></span>
     <button class="iconbtn theme" type="button" aria-label="Toggle light or dark theme">◐</button>
-    <button id="logoutBtn" class="btn small" style="margin-left:8px;" aria-label="Sign out">SIGN OUT</button>
+    <button id="logoutBtn" class="btn small hidden" style="margin-left:8px;display:inline-flex;align-items:center;gap:6px" aria-label="Sign out">
+      <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      SIGN OUT
+    </button>
   </header>
   <nav class="nav">
     <a href="/">HOME</a><a class="active" href="/app">ACCOUNT</a><a href="/about">ABOUT</a>
@@ -30,36 +33,36 @@
     <li id="stepSpend"><b>4 · Authorize</b>Approve each exact payment</li>
   </ol>
 
-  <!-- Loading / success overlays -->
-  <div id="overlay" class="overlay hidden" aria-hidden="true">
-    <div class="spinner" aria-hidden="true"></div>
-  </div>
-  <div id="successOverlay" class="overlay hidden" aria-hidden="true">
-    <div class="check" aria-hidden="true">✓</div>
-  </div>
+  <div id="overlay" class="overlay hidden" aria-hidden="true"><div class="spinner" aria-hidden="true"></div></div>
+  <div id="successOverlay" class="overlay hidden" aria-hidden="true"><div class="check" aria-hidden="true">✓</div></div>
 
-  <section class="hero">
+  <section class="hero animate-fadeIn">
     <div class="eyebrow">// ONE TOKEN · YOUR RULES · YOUR SAY</div>
     <h1>YOUR MONEY,<br>YOUR RULES</h1>
     <p>Create a MONC card that carries your rules inside it. Anyone you hand it to can only spend the way you allow — and every authorization is checked against real sources, not just your word.</p>
   </section>
 
-  <section id="auth" class="panel">
+  <section id="profile" class="panel hidden animate-slideUp">
+    <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg> Your identity</b><span>VERIFIED ACCOUNT</span></div>
+    <div class="pb"><div class="profile" id="profileCard"></div></div>
+  </section>
+
+  <section id="auth" class="panel animate-slideUp">
     <div class="ph"><b>Welcome to MONC</b><span>TAKES ABOUT A MINUTE</span></div>
     <div class="grid g2">
       <form id="registerForm" class="authbox" novalidate>
-        <h3 style="margin:0 0 10px">Create your account</h3>
+        <h3 style="margin:0 0 10px;display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Create your account</h3>
         <div class="inputgrp"><label for="regName">Your name</label><input id="regName" type="text" autocomplete="name" placeholder="e.g. Ada Obi" required></div>
         <div class="inputgrp"><label for="regEmail">Email</label><input id="regEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
         <div class="inputgrp"><label for="regPass">Create a password</label><input id="regPass" type="password" autocomplete="new-password" placeholder="10+ characters" required minlength="10"><div class="hint">The demo sends a 6-digit code to your screen right after you sign up.</div></div>
-        <button class="btn primary" id="register" type="submit">CREATE ACCOUNT</button>
+        <button class="btn primary" id="register" type="submit" style="display:inline-flex;align-items:center;gap:6px">CREATE ACCOUNT →</button>
         <div id="authMsg" role="status" aria-live="polite" style="margin-top:10px"></div>
       </form>
       <form id="loginForm" class="authbox" novalidate>
-        <h3 style="margin:0 0 10px">Already have an account?</h3>
+        <h3 style="margin:0 0 10px;display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Already have an account?</h3>
         <div class="inputgrp"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
         <div class="inputgrp"><label for="loginPass">Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="Your password" required></div>
-        <button class="btn" id="login" type="submit">SIGN IN</button>
+        <button class="btn" id="login" type="submit" style="display:inline-flex;align-items:center;gap:6px">SIGN IN <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
       </form>
     </div>
   </section>
@@ -77,19 +80,21 @@
 
   <div id="console" class="hidden">
     <section class="panel">
-      <div class="ph"><b>Your cards</b><span>EACH ONE CARRIES ITS OWN RULES</span></div>
+      <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> Your cards</b><span>EACH ONE CARRIES ITS OWN RULES</span></div>
       <div class="pb">
         <div id="instruments" class="rows"></div>
+        <div id="tokenHistory" class="token-history" style="margin-top:12px"></div>
+        <div id="tokenDetail" class="token-detail hidden"></div>
         <div class="actions">
-          <button class="btn primary" id="newInstrument">CREATE A CARD</button>
-          <button class="btn" id="refresh">REFRESH</button>
-          <a class="btn" href="/merchant">ACCEPT PAYMENTS →</a>
+          <button class="btn primary" id="newInstrument" style="display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> CREATE A CARD</button>
+          <button class="btn" id="refresh" style="display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> REFRESH</button>
+          <a class="btn" href="/merchant" style="display:inline-flex;align-items:center;gap:6px">ACCEPT PAYMENTS →</a>
         </div>
       </div>
     </section>
 
     <section class="panel">
-      <div class="ph"><b>Cards being given to you</b><span>ACCEPT TO BECOME THE OWNER</span></div>
+      <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11v2"/><path d="M22 8v1"/><path d="M22 14v1"/></svg> Cards being given to you</b><span>ACCEPT TO BECOME THE OWNER</span></div>
       <div class="pb"><div id="incomingList"></div></div>
     </section>
 
@@ -135,19 +140,21 @@ No purchases after 10 PM</textarea><div class="hint">One rule per line. Anything
     </section>
 
     <section id="tokenPanel" class="panel hidden">
-      <div class="ph"><b>Your card is ready</b><span>KEEP IT SAFE · SCAN OR DOWNLOAD</span></div>
+      <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="14" y1="14" x2="21" y2="14"/><line x1="14" y1="18" x2="21" y2="18"/><line x1="14" y1="22" x2="18" y2="22"/></svg> Your card is ready</b><span>KEEP IT SAFE · SCAN OR DOWNLOAD</span></div>
       <div class="pb">
         <div class="callout ok"><b>One more step for the other party</b>To authorize, they'll need this token and your pattern — or you can hand them the QR with the token text.</div>
         <div class="grid g2" style="align-items:start">
           <div>
             <div id="tokenText" class="tokenbox"></div>
             <div class="actions" style="margin-top:10px">
-              <button class="btn small" id="downloadToken">DOWNLOAD TOKEN</button>
+              <button class="btn small" id="downloadToken" style="display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> DOWNLOAD TOKEN</button>
               <button class="btn small" id="copyToken">COPY</button>
+              <button class="btn small" id="downloadQR" style="display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> DOWNLOAD QR</button>
             </div>
           </div>
           <div>
             <img id="tokenQR" class="qrcode" alt="MONC token QR code">
+            <div class="hint" style="margin-top:6px">QR contains the full token — scan from merchant side or download as PNG.</div>
           </div>
         </div>
         <div class="inputgrp" style="margin-top:14px"><label for="recipient">Give this card to another verified MONC account</label>
@@ -155,7 +162,7 @@ No purchases after 10 PM</textarea><div class="hint">One rule per line. Anything
             <input id="recipient" type="email" placeholder="recipient@example.com">
             <button class="btn" id="transferBtn">REQUEST TRANSFER</button>
           </div>
-          <div class="hint">The recipient must have a verified MONC account. Ownership moves only after they accept.</div>
+          <div class="hint">The recipient must have a verified MONC account. Ownership moves only after they accept. Token stays valid until accepted or cashed out.</div>
         </div>
         <div id="transferMsg" role="status" aria-live="polite"></div>
       </div>
@@ -172,8 +179,8 @@ function showLoading(){ const el=document.querySelector('#overlay'); if(el) el.c
 function hideLoading(){ const el=document.querySelector('#overlay'); if(el) el.classList.add('hidden'); }
 function showSuccess(){ const el=document.querySelector('#successOverlay'); if(!el) return; el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'),1500); }
 function fmtErr(e){ if(!e) return 'Request failed'; if(typeof e.message==='string') return e.message; if(Array.isArray(e.message)) return e.message.map(x=>x.msg||JSON.stringify(x)).join(' · '); if(e.detail) return Array.isArray(e.detail)?e.detail.map(x=>x.msg||JSON.stringify(x)).join(' · '):String(e.detail); return String(e.message||e); }
-
-// customer api with loading overlay - overwrites app.js api (no duplicate declaration)
+function validateEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+// overwrite app.js api with overlay version
 api = async function(path, opts={}){
   showLoading();
   try{
@@ -191,7 +198,6 @@ api = async function(path, opts={}){
     return data;
   }finally{ hideLoading(); }
 };
-
 function setStep(id){
   ['stepSignin','stepVerify','stepIssue','stepSpend'].forEach(s => {
     const el = document.getElementById(s);
@@ -200,7 +206,6 @@ function setStep(id){
     else if (['stepSignin','stepVerify','stepIssue'].indexOf(s) < ['stepSignin','stepVerify','stepIssue','stepSpend'].indexOf(id)) el.classList.add('done');
   });
 }
-
 function advanceStep(id){
   ['stepSignin','stepVerify','stepIssue','stepSpend'].forEach(s => {
     const el = document.getElementById(s);
@@ -213,11 +218,8 @@ function advanceStep(id){
     else if (!reached) document.getElementById(s).classList.add('done');
   });
 }
-
-function formatCard(v){
-  return v.replace(/\D/g,'').slice(0,16).replace(/(\d{4})(?=\d)/g,'$1 ');
-}
-function validateEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+function formatCard(v){ return v.replace(/\D/g,'').slice(0,16).replace(/(\d{4})(?=\d)/g,'$1 '); }
+function validateEmailLocal(v){return validateEmail(v)}
 const cardNumberEl = document.querySelector('#cardNumber');
 const cardExpiryEl = document.querySelector('#cardExpiry');
 if(cardNumberEl) cardNumberEl.addEventListener('input', function(){ this.value = formatCard(this.value); });
@@ -226,7 +228,6 @@ if(cardExpiryEl) cardExpiryEl.addEventListener('input', function(){
   if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);
   this.value = v;
 });
-
 async function loadSources(){
   try{
     const d = await api('/api/verify/sources');
@@ -236,41 +237,83 @@ async function loadSources(){
     document.getElementById('sourcePreview').classList.remove('hidden');
   }catch(e){}
 }
-
+function renderProfile(){
+  const card=document.getElementById('profileCard');
+  const p=document.getElementById('profile');
+  if(!me||!me.user){ p.classList.add('hidden'); return; }
+  p.classList.remove('hidden');
+  const initials=(me.user.display_name||me.user.email||'U').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  card.innerHTML=`<div class="profile-avatar">${esc(initials)}</div><div class="profile-info"><b>${esc(me.user.display_name)} ${me.user.verified?'<span style="margin-left:6px" class="pill ok">VERIFIED</span>':''}</b><span>${esc(me.user.email)}</span><span style="font-size:10px;color:var(--muted)">ID ${esc(String(me.user.id))} · ${esc(me.user.verified?'Verified':'Unverified')}</span></div><div style="text-align:right"><div class="pill ${me.instruments.length?'ok':'idle'}">${me.instruments.length} cards</div><div style="font-size:10px;color:var(--muted);margin-top:4px">${me.incoming_transfers.length} incoming</div></div>`;
+}
+function renderTokenHistory(){
+  const wrap=document.getElementById('tokenHistory');
+  const tokens=loadTokensLocal(me&&me.user&&me.user.id);
+  if(!tokens.length){ wrap.innerHTML=''; return; }
+  wrap.innerHTML='<div style="font-size:10px;letter-spacing:.12em;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Past tokens on this device (tap to view)</div>' + tokens.map(t=>`<div class="token-card" data-id="${esc(t.instrument_id)}"><div class="token-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div><div class="token-meta"><b>${esc(t.alias||'MONC CARD')} · ${esc(t.instrument_id.slice(0,8))}</b><small>${new Date(t.created_at).toLocaleString()} · ${esc((t.rules||[]).join(' · ').slice(0,60))}</small></div><span class="pill ${t.status||'idle'}">${esc(t.status||'stored')}</span></div>`).join('');
+  wrap.querySelectorAll('.token-card').forEach(el=>el.addEventListener('click',()=>showTokenDetail(el.dataset.id)));
+}
+function showTokenDetail(instrument_id){
+  const t=getTokenLocal(me&&me.user&&me.user.id, instrument_id);
+  const detail=document.getElementById('tokenDetail');
+  if(!t){ detail.classList.add('hidden'); return; }
+  const serverMeta=me.instruments.find(x=>x.id===instrument_id);
+  detail.classList.remove('hidden');
+  detail.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>${esc(t.alias)}</b><button class="btn small" onclick="document.getElementById('tokenDetail').classList.add('hidden')">CLOSE</button></div><div class="tokenbox" style="margin-bottom:8px">${esc(t.token)}</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" onclick="navigator.clipboard.writeText('${t.token.replace(/'/g,"\\'")}')">COPY TOKEN</button><button class="btn small" onclick="download('monc-token-'+'${t.instrument_id.slice(0,8)}'+'.json','${t.token.replace(/'/g,"\\'")}')">DOWNLOAD JSON</button></div><div class="hint" style="margin-top:8px">Status on server: ${esc(serverMeta?serverMeta.status:'unknown')} · Token remains valid until cashed out or explicitly transferred.</div>`;
+  detail.scrollIntoView({behavior:'smooth'});
+}
 async function load(){
   try{
     me = await api('/api/me');
     if(!me.user.verified){
-      $('#auth').classList.add('hidden');
+      document.querySelector('#auth').classList.add('hidden');
       advanceStep('stepVerify');
-      $('#verify').classList.remove('hidden');
-      $('#console').classList.add('hidden');
+      document.querySelector('#verify').classList.remove('hidden');
+      document.querySelector('#console').classList.add('hidden');
+      document.querySelector('#profile').classList.add('hidden');
+      document.querySelector('#logoutBtn').classList.add('hidden');
       return;
     }
-    $('#auth').classList.add('hidden');
-    $('#verify').classList.add('hidden');
-    $('#console').classList.remove('hidden');
+    document.querySelector('#auth').classList.add('hidden');
+    document.querySelector('#verify').classList.add('hidden');
+    document.querySelector('#console').classList.remove('hidden');
+    document.querySelector('#logoutBtn').classList.remove('hidden');
     advanceStep('stepIssue');
+    renderProfile();
     renderMe();
+    renderTokenHistory();
   }catch(e){
+    document.querySelector('#logoutBtn').classList.add('hidden');
+    document.querySelector('#profile').classList.add('hidden');
     if(e.status!==401) msg(e.message);
     else advanceStep('stepSignin');
   }
 }
-
 function renderMe(){
-  const list = $('#instruments');
-  list.innerHTML = me.instruments.length
-    ? me.instruments.map(x => `<div class="row"><span class="key">${esc(x.alias)}</span><span class="dots"></span><span class="val"><span class="pill ${x.status==='armed'?'ok':x.status==='transfer_pending'?'warn':'idle'}">${esc(x.status)}</span> · ${esc(x.id.slice(0,8))}</span></div>`).join('\n')
-    : '<div class="empty">No cards yet. Create one below — it takes about a minute.</div>';
-  $('#incomingList').innerHTML = me.incoming_transfers.length
+  const list = document.querySelector('#instruments');
+  // server list as primary, but make clickable if we have token locally
+  const locals=loadTokensLocal(me&&me.user&&me.user.id);
+  const localMap=new Map(locals.map(x=>[x.instrument_id, x]));
+  if(me.instruments.length){
+    list.innerHTML = me.instruments.map(x => {
+      const hasLocal=localMap.has(x.id);
+      const cls=hasLocal?'token-card':'row';
+      const pill=`<span class="pill ${x.status==='armed'?'ok':x.status==='transfer_pending'?'warn':'idle'}">${esc(x.status)}</span>`;
+      if(hasLocal){
+        return `<div class="${cls}" data-id="${esc(x.id)}" style="cursor:pointer"><span class="key">${esc(x.alias)}</span><span class="dots"></span><span class="val">${pill} · ${esc(x.id.slice(0,8))} <span style="font-size:10px;color:var(--muted)">tap to view</span></span></div>`;
+      }
+      return `<div class="row"><span class="key">${esc(x.alias)}</span><span class="dots"></span><span class="val">${pill} · ${esc(x.id.slice(0,8))}</span></div>`;
+    }).join('\n');
+    list.querySelectorAll('.token-card').forEach(el=>el.addEventListener('click',()=>showTokenDetail(el.dataset.id)));
+  } else {
+    list.innerHTML = '<div class="empty">No cards yet. Create one below — it takes about a minute.</div>';
+  }
+  document.querySelector('#incomingList').innerHTML = me.incoming_transfers.length
     ? me.incoming_transfers.map(x => `<div class="intent"><b>Instrument ${esc(x.instrument_id.slice(0,8))}</b><button class="btn small accept-transfer" data-transfer-id="${esc(x.id)}">ACCEPT TOKEN</button></div>`).join('\n')
     : '<div class="empty">No cards waiting to be handed to you.</div>';
 }
-
 document.querySelector('#registerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email=$('#regEmail').value.trim(), name=$('#regName').value.trim(), pass=$('#regPass').value;
+  const email=document.querySelector('#regEmail').value.trim(), name=document.querySelector('#regName').value.trim(), pass=document.querySelector('#regPass').value;
   if(!name || name.length<2){ msg('Enter your name (at least 2 characters).'); return; }
   if(!validateEmail(email)){ msg('Enter a valid email address.'); return; }
   if(!pass || pass.length<10){ msg('Password must be at least 10 characters.'); return; }
@@ -278,14 +321,13 @@ document.querySelector('#registerForm').addEventListener('submit', async (e) => 
     const x = await api('/api/auth/register', {method:'POST', body:JSON.stringify({email, display_name:name, password:pass})});
     msg('Account created. Your demo code: ' + x.demo_verification_code, true);
     advanceStep('stepVerify');
-    $('#verify').classList.remove('hidden');
-    $('#verifyCode').focus();
+    document.querySelector('#verify').classList.remove('hidden');
+    document.querySelector('#verifyCode').focus();
   }catch(e){ msg(fmtErr(e)); }
 });
-
 document.querySelector('#loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email=$('#loginEmail').value.trim(), pass=$('#loginPass').value;
+  const email=document.querySelector('#loginEmail').value.trim(), pass=document.querySelector('#loginPass').value;
   if(!validateEmail(email)){ msg('Enter a valid email address.'); return; }
   if(!pass){ msg('Enter your password.'); return; }
   try{
@@ -293,45 +335,41 @@ document.querySelector('#loginForm').addEventListener('submit', async (e) => {
     await load();
   }catch(e){ msg(fmtErr(e)); }
 });
-
 document.querySelector('#verifyForm').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const code=$('#verifyCode').value.trim();
+  const code=document.querySelector('#verifyCode').value.trim();
   if(!/^\d{6}$/.test(code)){ msg('Enter the 6-digit verification code.'); return; }
   try{
     await api('/api/auth/verify', {method:'POST', body:JSON.stringify({code})});
     await load();
   }catch(e){ msg(fmtErr(e)); }
 });
-
-$('#logoutBtn').onclick = async ()=>{
-  try{ await api('/api/auth/logout', {method:'POST'}); location.reload(); }catch(e){ alert('Sign out failed: '+fmtErr(e)); }
+document.querySelector('#logoutBtn').onclick = async ()=>{
+  try{ await api('/api/auth/logout', {method:'POST'}); localStorage.removeItem('monc_tokens_'+(me&&me.user&&me.user.id)); location.reload(); }catch(e){ alert('Sign out failed: '+fmtErr(e)); }
 };
-
-$('#newInstrument').onclick = () => {
-  $('#issuePanel').classList.remove('hidden');
-  $('#issuePanel').scrollIntoView({behavior:'smooth'});
-  if (!pat) pat = makePattern($('#pattern'));
+document.querySelector('#newInstrument').onclick = () => {
+  document.querySelector('#issuePanel').classList.remove('hidden');
+  document.querySelector('#issuePanel').scrollIntoView({behavior:'smooth'});
+  if (!pat) pat = makePattern(document.querySelector('#pattern'));
   loadSources();
 };
-$('#cancelIssue').onclick = () => $('#issuePanel').classList.add('hidden');
-$('#refresh').onclick = load;
-
-$('#issueBtn').onclick = async () => {
-  if (pat.length() < 4){ $('#patternStatus').textContent = 'Draw at least 4 pattern cells first.'; return; }
+document.querySelector('#cancelIssue').onclick = () => document.querySelector('#issuePanel').classList.add('hidden');
+document.querySelector('#refresh').onclick = load;
+document.querySelector('#issueBtn').onclick = async () => {
+  if (!pat || pat.length() < 4){ document.querySelector('#patternStatus').textContent = 'Draw at least 4 pattern cells first.'; return; }
   const id = crypto.randomUUID();
   const locator = b64(random(24));
-  const rules = $('#rules').value.split('\n').map(x => x.trim()).filter(Boolean);
-  $('#compiledPolicy').classList.add('hidden');
+  const rules = document.querySelector('#rules').value.split('\n').map(x => x.trim()).filter(Boolean);
+  document.querySelector('#compiledPolicy').classList.add('hidden');
   try{
     const compiled = await api('/api/compile_policy', {method:'POST', body:JSON.stringify({rules})});
-    $('#compiledJson').textContent = JSON.stringify(compiled.policy, null, 2) + '\n\nSample checks:\n' + JSON.stringify(compiled.tests || [], null, 2);
-    $('#compiledPolicy').classList.remove('hidden');
+    document.querySelector('#compiledJson').textContent = JSON.stringify(compiled.policy, null, 2) + '\n\nSample checks:\n' + JSON.stringify(compiled.tests || [], null, 2);
+    document.querySelector('#compiledPolicy').classList.remove('hidden');
     if (compiled.policy && compiled.policy.unsupported && compiled.policy.unsupported.length){
       if(!confirm('Some rules cannot be converted into a deterministic check and will fail closed:\n\n'+compiled.policy.unsupported.join('\n')+'\n\nCreate the card anyway?')){ return; }
     }
     const p = pat.value();
-    const card = {number:$('#cardNumber').value.replace(/\s/g,''), expiry:$('#cardExpiry').value, name:$('#cardName').value};
+    const card = {number:document.querySelector('#cardNumber').value.replace(/\s/g,''), expiry:document.querySelector('#cardExpiry').value, name:document.querySelector('#cardName').value};
     const key = await patternKey(p, id);
     const cardBox = await seal(key, JSON.stringify(card), 'MONC-CARD-' + id);
     const serverRaw = random(32), serverBox = await seal(key, serverRaw, 'MONC-HALF-' + id);
@@ -340,41 +378,46 @@ $('#issueBtn').onclick = async () => {
     const privateJwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
     const privateBox = await seal(key, JSON.stringify(privateJwk), 'MONC-SIGN-' + id);
     const token = tokenEncode({v:1, instrument_id:id, locator, card_box:cardBox, private_box:privateBox});
-
+    const aliasVal=document.querySelector('#alias').value || 'MONC CARD';
     const saved = await api('/api/instruments', {method:'POST', body:JSON.stringify({
-      instrument_id:id, alias:$('#alias').value || 'MONC CARD', locator,
+      instrument_id:id, alias:aliasVal, locator,
       encrypted_server_half:JSON.stringify(serverBox), public_key_jwk:jwk, rules})});
+    // persist token locally - remains valid until cashed out
+    saveTokenLocal(me.user.id, {instrument_id:id, alias:aliasVal, token, locator, rules, created_at:new Date().toISOString(), status:'armed'});
     currentToken = token;
-    $('#tokenPanel').classList.remove('hidden');
-    $('#tokenText').textContent = token;
+    document.querySelector('#tokenPanel').classList.remove('hidden');
+    document.querySelector('#tokenText').textContent = token;
     const qr = await api('/token_qr_dataurl?token=' + encodeURIComponent(token));
-    $('#tokenQR').src = qr.data_url;
-    $('#issueResult').textContent = 'Card created · encrypted locally · ' + saved.instrument_id;
-    $('#issueResult').className = 'success';
+    document.querySelector('#tokenQR').src = qr.data_url;
+    document.querySelector('#tokenQR').dataset.dataurl = qr.data_url;
+    document.querySelector('#issueResult').textContent = 'Card created · encrypted locally · ' + saved.instrument_id;
+    document.querySelector('#issueResult').className = 'success';
     showSuccess();
     advanceStep('stepSpend');
-    $('#tokenPanel').scrollIntoView({behavior:'smooth'});
-  }catch(e){ $('#issueResult').textContent=fmtErr(e); $('#issueResult').className='error'; }
+    renderMe(); renderTokenHistory();
+    document.querySelector('#tokenPanel').scrollIntoView({behavior:'smooth'});
+  }catch(e){ document.querySelector('#issueResult').textContent=fmtErr(e); document.querySelector('#issueResult').className='error'; }
 };
-
-$('#copyToken').onclick = async () => {
-  try{ await navigator.clipboard.writeText(currentToken); $('#copyToken').textContent='COPIED'; setTimeout(()=>$('#copyToken').textContent='COPY',1200); }
-  catch(e){ $('#copyToken').textContent='NOT SUPPORTED'; }
+document.querySelector('#copyToken').onclick = async () => {
+  try{ await navigator.clipboard.writeText(currentToken); document.querySelector('#copyToken').textContent='COPIED'; setTimeout(()=>document.querySelector('#copyToken').textContent='COPY',1200); }
+  catch(e){ document.querySelector('#copyToken').textContent='NOT SUPPORTED'; }
 };
-
-$('#downloadToken').onclick = () => download('monc-token.json', currentToken);
-$('#transferBtn').onclick = async () => {
-  const email=$('#recipient').value.trim();
-  if(!validateEmail(email)){ $('#transferMsg').textContent='Enter a valid recipient email.'; $('#transferMsg').className='error'; return; }
+document.querySelector('#downloadToken').onclick = () => download('monc-token.json', currentToken);
+document.querySelector('#downloadQR').onclick = () => {
+  const dataUrl=document.querySelector('#tokenQR').dataset.dataurl || document.querySelector('#tokenQR').src;
+  if(dataUrl) downloadQR(dataUrl, 'monc-qr-'+(currentToken?currentToken.slice(6,14):'token')+'.png');
+};
+document.querySelector('#transferBtn').onclick = async () => {
+  const email=document.querySelector('#recipient').value.trim();
+  if(!validateEmail(email)){ document.querySelector('#transferMsg').textContent='Enter a valid recipient email.'; document.querySelector('#transferMsg').className='error'; return; }
   try{
     const x = tokenDecode(currentToken);
     const r = await api('/api/transfers', {method:'POST', body:JSON.stringify({locator:x.locator, recipient_email:email})});
-    $('#transferMsg').textContent = 'Transfer requested: ' + r.transfer_id;
-    $('#transferMsg').className = 'success';
+    document.querySelector('#transferMsg').textContent = 'Transfer requested: ' + r.transfer_id;
+    document.querySelector('#transferMsg').className = 'success';
     showSuccess();
-  }catch(e){ $('#transferMsg').textContent=fmtErr(e); $('#transferMsg').className='error'; }
+  }catch(e){ document.querySelector('#transferMsg').textContent=fmtErr(e); document.querySelector('#transferMsg').className='error'; }
 };
-
 const incomingEl = document.querySelector('#incomingList'); if(incomingEl) incomingEl.addEventListener('click',e=>{const button=e.target.closest('.accept-transfer');if(button)accept(button.dataset.transferId);});
 async function accept(id){
   try{

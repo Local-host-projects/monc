@@ -22,14 +22,14 @@
     <a href="/">HOME</a><a href="/app">ACCOUNT</a><a class="active" href="/about">ABOUT</a>
   </nav>
 
-  <section class="hero">
+  <section class="hero animate-fadeIn">
     <div class="eyebrow">// WHAT MONC IS · HOW IT VERIFIES · WHY IT FAILS CLOSED</div>
     <h1>SPENDING THAT<br>CAN ONLY SAY YES</h1>
     <p>MONC lets an owner delegate payment without handing over unlimited trust. A merchant or an AI agent proposes one <b>exact</b> transaction. The owner reviews it, proves ownership from their own device, and MONC settles it — but only if every condition can be confirmed from a <b>authoritative source, right now</b>.</p>
   </section>
 
-  <section class="panel">
-    <div class="ph"><b>The one tenet</b><span>MINIMIZE INPUT · COLLECT FROM THE SOURCE</span></div>
+  <section class="panel animate-slideUp">
+    <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg> The one tenet</b><span>MINIMIZE INPUT · COLLECT FROM THE SOURCE</span></div>
     <div class="pb">
       <div class="callout ok"><b>Design rule</b>Minimize data entry from both parties and collect directly from the sources in the most definitive / authoritative way.</div>
       <p>Neither the customer nor the merchant should have to type facts that a trusted system already holds. The customer never types the merchant's name or city. The merchant never types the customer's details. MONC pulls each condition from the record that is authoritative for it:</p>
@@ -42,15 +42,15 @@
     </div>
   </section>
 
-  <section class="panel">
-    <div class="ph"><b>Verification sources</b><span>LIVE SOURCE MAP</span></div>
+  <section class="panel animate-slideUp">
+    <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Verification sources</b><span>LIVE SOURCE MAP</span></div>
     <div class="pb">
       <div id="sourceList" class="vlist"><span class="hint">Loading live source map…</span></div>
     </div>
   </section>
 
-  <section class="panel">
-    <div class="ph"><b>How a payment moves</b><span>CHECK · CONSENT · SETTLE</span></div>
+  <section class="panel animate-slideUp">
+    <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1-2-2"/></svg> How a payment moves</b><span>CHECK · CONSENT · SETTLE</span></div>
     <div class="pb">
       <ol class="steps" style="flex-direction:column;gap:6px">
         <li class="done"><b>1 · Proposal</b>The merchant sends an exact payment intent: fixed amount, product, domain.</li>
@@ -63,8 +63,8 @@
     </div>
   </section>
 
-  <section class="panel">
-    <div class="ph"><b>Running the harness</b><span>VERIFY IN REAL TIME</span></div>
+  <section class="panel animate-slideUp">
+    <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg> Running the harness</b><span>VERIFY IN REAL TIME</span></div>
     <div class="pb">
       <p>The same pipeline the checkout uses is exposed as a tool:</p>
       <div class="callout"><b>In the app</b>The Account console verifies your instruments and rules before they are used. The checkout shows you each live check and where the value came from.</div>
@@ -73,8 +73,8 @@
     </div>
   </section>
 
-  <section class="panel">
-    <div class="ph"><b>Prototype boundary</b><span>DEMO MODE</span></div>
+  <section class="panel animate-slideUp">
+    <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Prototype boundary</b><span>DEMO MODE</span></div>
     <div class="pb">
       <p>This deployment runs in <b>sandbox</b> mode: Wema calls are deterministic and in-memory, and card details are encrypted in this browser — never test with a real card. In production the gateway uses live Wema / ALAT credentials, a PCI tokenization provider, and server-side key management. The verification harness and fail-closed rules are exactly the same code path.</p>
       <div class="form-actions">

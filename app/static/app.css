@@ -64,5 +64,69 @@ code{font-family:"IBM Plex Mono",Consolas,monospace;font-size:12px;background:co
 :root{--ok:#3ddc84;--warn:#f2c94c;--err:#ff5c5c}
 [data-theme=light]{--ok:#1a7f37;--warn:#b7791f;--err:#cf222e}
 .hidden{display:none !important}
-.success{color:var(--ok);border:1px solid var(--ok);background:color-mix(in srgb,var(--ok) 10%,transparent);padding:8px 10px;margin-top:8px;font-size:12px}
-.error{color:var(--err);border:1px solid var(--err);background:color-mix(in srgb,var(--err) 10%,transparent);padding:8px 10px;margin-top:8px;font-size:12px}
+.success{color:var(--ok);border:1px solid var(--ok);background:color-mix(in srgb,var(--ok) 10%,transparent);padding:8px 10px;margin-top:8px;font-size:12px;animation:slideUp .3s ease}
+.error{color:var(--err);border:1px solid var(--err);background:color-mix(in srgb,var(--err) 10%,transparent);padding:8px 10px;margin-top:8px;font-size:12px;animation:shake .3s ease}
+/* ---- Icons (inline SVG) ---- */
+.icon{width:16px;height:16px;display:inline-block;vertical-align:middle;flex-shrink:0}
+.icon-sm{width:14px;height:14px}
+.icon-lg{width:20px;height:20px}
+.icon-muted{opacity:.6}
+/* ---- Animations ---- */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scaleIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ink) 20%,transparent)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
+@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+.animate-fadeIn{animation:fadeIn .4s ease}
+.animate-slideUp{animation:slideUp .4s ease}
+.animate-scaleIn{animation:scaleIn .3s ease}
+.panel{animation:slideUp .35s ease}
+.hero h1{animation:fadeIn .6s ease}
+.hero p{animation:fadeIn .7s ease .1s both}
+/* ---- Refined interactions ---- */
+.btn{position:relative;overflow:hidden;transition:all .15s ease}
+.btn:active{transform:scale(.98)}
+.btn.primary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.inputgrp input, .inputgrp textarea, .inputgrp select{transition:border-color .15s ease, box-shadow .15s ease}
+.inputgrp input:focus, .inputgrp textarea:focus{border-color:var(--ink);box-shadow:0 0 0 2px color-mix(in srgb,var(--ink) 10%,transparent)}
+.row, .intent, .token-card{transition:background .15s ease, transform .15s ease, border-color .15s ease}
+.row:hover, .intent:hover{border-color:var(--ink);background:color-mix(in srgb,var(--ink) 4%,transparent)}
+.token-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08);border-color:var(--ink)}
+.token-card.active{border-color:var(--ink);background:color-mix(in srgb,var(--ink) 6%,transparent)}
+/* ---- Profile / Identity ---- */
+.profile{display:flex;gap:16px;align-items:center;padding:16px;background:var(--surface);border:1px solid var(--line);animation:slideUp .4s ease}
+.profile-avatar{width:48px;height:48px;border-radius:50%;background:var(--ink);color:var(--inverse);display:flex;align-items:center;justify-content:center;font:700 18px "Barlow Condensed",sans-serif;flex-shrink:0}
+.profile-info{flex:1;min-width:0}
+.profile-info b{display:block;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-info span{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;letter-spacing:.1em;padding:3px 8px;border:1px solid var(--ok);color:var(--ok);margin-top:4px}
+.profile-badge.unverified{border-color:var(--warn);color:var(--warn)}
+/* ---- Token history ---- */
+.token-history{display:grid;gap:8px}
+.token-card{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer}
+.token-card .token-icon{width:40px;height:40px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;background:var(--bg);flex-shrink:0}
+.token-card .token-meta{flex:1;min-width:0}
+.token-card .token-meta b{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.token-card .token-meta small{display:block;font-size:11px;color:var(--muted)}
+.token-detail{padding:16px;background:var(--surface2);border:1px solid var(--line);margin-top:12px;animation:slideUp .3s ease}
+/* ---- Scanner ---- */
+.scanner-wrap{position:relative;width:100%;max-width:420px;margin:12px auto}
+.scanner{position:relative;width:100%;height:280px;background:#000;border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.scanner video{width:100%;height:100%;object-fit:cover}
+.scanner-overlay{position:absolute;inset:0;border:2px solid var(--ok);margin:24px;pointer-events:none;opacity:.6}
+.scanner-overlay::before,.scanner-overlay::after{content:'';position:absolute;width:20px;height:20px;border-color:var(--ok);border-style:solid}
+.scanner-overlay::before{top:-2px;left:-2px;border-width:2px 0 0 2px}
+.scanner-overlay::after{bottom:-2px;right:-2px;border-width:0 2px 2px 0}
+.scanner-hint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;padding:4px 10px;font-size:10px;letter-spacing:.1em;white-space:nowrap}
+/* ---- Cleaner topbar ---- */
+.topbar{backdrop-filter:blur(8px);position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 85%,transparent)}
+.clock{font-variant-numeric:tabular-nums}
+/* ---- Steps refinement ---- */
+.steps li{position:relative;overflow:hidden}
+.steps li.current::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--inverse);animation:shimmer 1.5s linear infinite;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);background-size:200% 100%}
+/* ---- Pattern refinement ---- */
+.pattern{gap:10px}
+.dot{border-radius:4px;transition:all .15s ease}
+.dot.on{background:var(--ink);color:var(--inverse);transform:scale(1.05);box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.dot:hover{border-color:var(--ink);transform:scale(1.02)}

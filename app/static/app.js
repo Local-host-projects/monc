@@ -19,6 +19,49 @@ async function api(url,opt={}){let headers={Accept:'application/json',...(opt.bo
 function readTheme(){try{return localStorage.getItem('moncTheme')==='light'?'light':'dark'}catch(e){return 'dark'}}
 function setTheme(t){const theme=t==='light'?'light':'dark';document.documentElement.dataset.theme=theme;try{localStorage.setItem('moncTheme',theme)}catch(e){}$('.theme')?.setAttribute('aria-label',theme==='dark'?'Switch to light theme':'Switch to dark theme')}
 function initShell(){setTheme(readTheme());$('.theme')?.addEventListener('click',()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));window.addEventListener('storage',e=>{if(e.key==='moncTheme')setTheme(e.newValue)});let c=$('.clock');if(c){let f=()=>c.textContent=new Date().toISOString().slice(11,19)+' UTC';f();setInterval(f,1000)}if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});}}
+// ---- Token persistence (local, never leaves browser) ----
+function tokenStoreKey(uid){return 'monc_tokens_'+(uid||'anon')}
+function saveTokenLocal(uid, data){
+  try{
+    const k=tokenStoreKey(uid), arr=JSON.parse(localStorage.getItem(k)||'[]');
+    const idx=arr.findIndex(x=>x.instrument_id===data.instrument_id);
+    if(idx>=0) arr[idx]=data; else arr.unshift(data);
+    localStorage.setItem(k, JSON.stringify(arr.slice(0,50)));
+  }catch(e){}
+}
+function loadTokensLocal(uid){
+  try{ return JSON.parse(localStorage.getItem(tokenStoreKey(uid))||'[]'); }catch(e){return []}
+}
+function getTokenLocal(uid, instrument_id){
+  return loadTokensLocal(uid).find(x=>x.instrument_id===instrument_id);
+}
+function downloadQR(dataUrl, name){
+  const a=document.createElement('a'); a.href=dataUrl; a.download=name||'monc-qr.png'; a.click();
+}
+// ---- QR Scanner (BarcodeDetector + fallback) ----
+async function startScanner(videoEl, onDetected){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw Error('Camera not available');
+  const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+  videoEl.srcObject=stream; await videoEl.play();
+  let stopped=false;
+  const stop=()=>{ stopped=true; stream.getTracks().forEach(t=>t.stop()); };
+  const hasDetector='BarcodeDetector' in window;
+  let detector=hasDetector?new BarcodeDetector({formats:['qr_code']}):null;
+  async function tick(){
+    if(stopped) return;
+    try{
+      let result=null;
+      if(detector){
+        const codes=await detector.detect(videoEl);
+        if(codes.length) result=codes[0].rawValue;
+      }
+      if(result) onDetected(result, stop);
+      else requestAnimationFrame(tick);
+    }catch(e){ requestAnimationFrame(tick); }
+  }
+  tick();
+  return stop;
+}
 function makePattern(root){let order=[];for(let i=0;i<16;i++){let d=document.createElement('div');d.className='dot';d.dataset.i=i;d.innerHTML='<i></i>';d.onclick=()=>{let at=order.indexOf(i);at<0?order.push(i):order.splice(at,1);render()};root.appendChild(d)}function render(){$$('.dot',root).forEach((d,i)=>{let at=order.indexOf(i);d.classList.toggle('on',at>=0);$('i',d).textContent=at>=0?at+1:''});root.dispatchEvent(new CustomEvent('patternchange'))}return{value:()=>order.join('-'),clear:()=>{order=[];render()},length:()=>order.length}}
 function download(name,text){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
 function tokenEncode(o){return 'MONC1.'+b64(enc.encode(JSON.stringify(o)))}

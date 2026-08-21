@@ -17,30 +17,38 @@
     <span class="grow"></span>
     <span class="clock"></span>
     <button class="iconbtn theme" type="button" aria-label="Toggle light or dark theme">◐</button>
-    <button id="logoutBtn" class="btn small" style="margin-left:8px" aria-label="Sign out">SIGN OUT</button>
+    <button id="logoutBtn" class="btn small hidden" style="margin-left:8px;display:inline-flex;align-items:center;gap:6px" aria-label="Sign out">
+      <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      SIGN OUT
+    </button>
   </header>
   <nav class="nav">
     <a href="/">HOME</a><a href="/app">ACCOUNT</a><a href="/about">ABOUT</a>
   </nav>
 
-  <section class="hero">
+  <section class="hero animate-fadeIn">
     <div class="eyebrow">// CONNECT AN ACCOUNT · SEND AN EXACT CHECKOUT · GET CREDITED</div>
     <h1>ACCEPT PAYMENTS,<br>NEVER THE CARD</h1>
     <p>Connect your Wema settlement account, get a minimal API key, and create payment requests. You never see the customer's card, pattern, or private key — you only receive clear, exact, settled money when the customer says yes.</p>
   </section>
 
-  <section id="auth" class="panel">
+  <section id="profile" class="panel hidden animate-slideUp">
+    <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg> Your identity</b><span>MERCHANT ACCOUNT</span></div>
+    <div class="pb"><div class="profile" id="profileCard"></div></div>
+  </section>
+
+  <section id="auth" class="panel animate-slideUp">
     <div class="ph"><b>Sign in to accept payments</b><span>VERIFIED MONC ACCOUNT REQUIRED</span></div>
     <div class="grid g2">
       <form id="registerForm" class="authbox" novalidate>
-        <h3 style="margin:0 0 10px">Create an account</h3>
+        <h3 style="margin:0 0 10px;display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> Create an account</h3>
         <div class="inputgrp"><label for="regName">Your name</label><input id="regName" type="text" placeholder="e.g. Ada Obi" required></div>
         <div class="inputgrp"><label for="regEmail">Business email</label><input id="regEmail" type="email" placeholder="you@example.com" required></div>
         <div class="inputgrp"><label for="regPass">Password</label><input id="regPass" type="password" placeholder="10+ characters" required minlength="10"></div>
         <button class="btn primary" id="register" type="submit">CREATE ACCOUNT</button>
       </form>
       <form id="loginForm" class="authbox" novalidate>
-        <h3 style="margin:0 0 10px">Sign in</h3>
+        <h3 style="margin:0 0 10px;display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Sign in</h3>
         <div class="inputgrp"><label for="loginEmail">Email</label><input id="loginEmail" type="email" placeholder="you@example.com" required></div>
         <div class="inputgrp"><label for="loginPass">Password</label><input id="loginPass" type="password" placeholder="Your password" required></div>
         <button class="btn" id="login" type="submit">SIGN IN</button>
@@ -61,13 +69,13 @@
 
   <div id="merchantConsole" class="hidden">
     <section id="onboard" class="panel">
-      <div class="ph"><b>Connect your settlement account</b><span>WE FETCH EVERYTHING FROM THE BANK</span></div>
+      <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="15" rx="2"/><line x1="2" y1="12" x2="22" y2="12"/><circle cx="12" cy="15" r="1"/></svg> Connect your settlement account</b><span>WE FETCH EVERYTHING FROM THE BANK</span></div>
       <div class="pb">
         <div class="callout"><b>Minimum entry, by design</b>All you need is your 10-digit Wema / ALAT account number. MONC pulls the account name and your city straight from the bank so you don't retype them.</div>
         <div class="grid g2">
           <div>
             <div class="inputgrp"><label for="account">Wema / ALAT settlement account</label><input id="account" inputmode="numeric" maxlength="10" placeholder="10 digits"></div>
-            <button class="btn" id="lookup">FETCH ACCOUNT DETAILS</button>
+            <button class="btn" id="lookup" style="display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> FETCH ACCOUNT DETAILS</button>
           </div>
           <div>
             <div class="inputgrp"><label for="accountName">Account name</label><input id="accountName" readonly placeholder="Will update after fetch"></div>
@@ -92,12 +100,32 @@
         <div id="merchantRows" class="rows"></div>
         <div class="callout warn" style="margin-top:14px"><b>Your API key</b>Generated once and shown below. Keep it in your backend environment — never in browser code or an AI agent prompt. Anyone with it can create payment requests on your behalf.</div>
         <div id="apiKey" class="tokenbox" style="margin-top:10px"></div>
-        <div class="actions" style="margin-top:10px"><button class="btn small" id="copyKey">COPY API KEY</button></div>
+        <div class="actions" style="margin-top:10px"><button class="btn small" id="copyKey" style="display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v3"/></svg> COPY API KEY</button></div>
+      </div>
+    </section>
+
+    <section id="scanPanel" class="panel">
+      <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg> Scan customer QR</b><span>CAMERA · OR UPLOAD</span></div>
+      <div class="pb">
+        <div class="callout"><b>Scan the token QR</b>Let the customer show their QR (from <i>Your account → Your card is ready</i>). Scan it here to see the instrument and prefill a payment — the private key never leaves their device.</div>
+        <div class="scanner-wrap">
+          <div class="scanner" id="scannerBox">
+            <video id="scanVideo" playsinline muted></video>
+            <div class="scanner-overlay"></div>
+            <div class="scanner-hint">Camera off</div>
+          </div>
+        </div>
+        <div class="actions" style="margin-top:12px">
+          <button class="btn primary" id="startScan" style="display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> START CAMERA</button>
+          <button class="btn hidden" id="stopScan">STOP</button>
+          <label class="btn" style="cursor:pointer"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> UPLOAD IMAGE <input type="file" id="scanFile" accept="image/*" style="display:none"></label>
+        </div>
+        <div id="scanResult" class="hidden" style="margin-top:12px"></div>
       </div>
     </section>
 
     <section class="panel">
-      <div class="ph"><b>Create a payment request</b><span>LOCKED AMOUNT · PRODUCT · DOMAIN · EXPIRY</span></div>
+      <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Create a payment request</b><span>LOCKED AMOUNT · PRODUCT · DOMAIN · EXPIRY</span></div>
       <div class="pb">
         <div class="grid g2">
           <div>
@@ -115,7 +143,7 @@
         </div>
         <datalist id="types2"><option>education</option><option>food</option><option>transport</option><option>retail</option><option>services</option></datalist>
         <div class="inputgrp"><label for="initiator">Initiated by</label><select id="initiator"><option value="human">A person at the store</option><option value="agent">An AI agent</option></select><div class="hint">MONC records who proposed the purchase — the buyer gets to review it.</div></div>
-        <div class="form-actions"><button class="btn primary lg" id="createIntent">CREATE PAYMENT REQUEST →</button></div>
+        <div class="form-actions"><button class="btn primary lg" id="createIntent" style="display:inline-flex;align-items:center;gap:6px">CREATE PAYMENT REQUEST →</button></div>
         <div id="intentMsg" role="status" aria-live="polite"></div>
       </div>
     </section>
@@ -131,7 +159,6 @@
 <script src="/static/app.js"></script>
 <script>
 let apiKey = localStorage.getItem('moncMerchantApiKey') || '', me = null;
-// use $/$$/esc from app.js - do not redeclare them here
 function fmtErr(e){ if(!e) return 'Request failed'; if(e.message) return typeof e.message==='string'?e.message:(Array.isArray(e.message)?e.message.map(x=>x.msg||JSON.stringify(x)).join(' · '):String(e.message)); if(e.detail) return Array.isArray(e.detail)?e.detail.map(x=>x.msg||JSON.stringify(x)).join(' · '):String(e.detail); return String(e); }
 function validateEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 function out(selector, text, ok = false){ const el = document.querySelector(selector); if(!el) return; const txt = typeof text==='string'?text:(text&&text.message?fmtErr(text):String(text)); el.textContent = txt; el.className = ok ? 'success' : 'error'; if(!ok) console.warn('[MONC]', selector, txt); }
@@ -140,8 +167,8 @@ function statusPill(status){
   return `<span class="pill ${cls}">${esc(status)}</span>`;
 }
 function showMerchant(m){
-  $('#summary').classList.remove('hidden');
-  $('#merchantRows').innerHTML = [
+  document.querySelector('#summary').classList.remove('hidden');
+  document.querySelector('#merchantRows').innerHTML = [
     ['business', m.business_name],
     ['category', m.merchant_type],
     ['city', m.city],
@@ -150,11 +177,20 @@ function showMerchant(m){
     ['credit', `${(m.credit_balance_minor/100).toFixed(2)} ${m.country==='NG'?'NGN':''}`],
   ].map(([k,v]) => `<div class="row"><span class="key">${esc(k)}</span><span class="dots"></span><span class="val">${esc(v)}</span></div>`).join('');
 }
+function renderProfile(){
+  const card=document.getElementById('profileCard');
+  const p=document.getElementById('profile');
+  if(!me||!me.user){ p.classList.add('hidden'); return; }
+  p.classList.remove('hidden');
+  const initials=(me.user.display_name||me.user.email||'U').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const merch=me.merchant?`${esc(me.merchant.business_name)} · ${esc(me.merchant.city)}`:'No merchant yet';
+  card.innerHTML=`<div class="profile-avatar">${esc(initials)}</div><div class="profile-info"><b>${esc(me.user.display_name)} ${me.user.verified?'<span class="pill ok" style="margin-left:6px">VERIFIED</span>':''}</b><span>${esc(me.user.email)}</span><span style="font-size:10px;color:var(--muted)">${esc(merch)}</span></div>`;
+}
 async function loadSummary(){
   try {
     const x = await api('/api/merchant/summary');
     showMerchant(x.merchant);
-    $('#intents').innerHTML = x.payment_intents.length
+    document.querySelector('#intents').innerHTML = x.payment_intents.length
       ? x.payment_intents.map(i => `<div class="intent"><b>${esc(i.order_id)} · ${esc((i.amount_minor/100).toLocaleString())} ${esc(i.currency)}</b> ${statusPill(i.status)}<small>${esc(i.product_name)}</small><a class="btn small" href="/checkout/${encodeURIComponent(i.payment_intent_id)}">OPEN REQUEST →</a></div>`).join('')
       : '<div class="empty">No payment requests yet. Create one above.</div>';
   } catch(e) { out('#intents', fmtErr(e)); }
@@ -162,77 +198,124 @@ async function loadSummary(){
 async function load(){
   try {
     me = await api('/api/me');
-    if(!me.user.verified){ $('#verify').classList.remove('hidden'); return; }
-    $('#auth').classList.add('hidden');
-    $('#merchantConsole').classList.remove('hidden');
+    if(!me.user.verified){ document.querySelector('#verify').classList.remove('hidden'); document.querySelector('#logoutBtn').classList.add('hidden'); document.querySelector('#profile').classList.add('hidden'); return; }
+    document.querySelector('#auth').classList.add('hidden');
+    document.querySelector('#merchantConsole').classList.remove('hidden');
+    document.querySelector('#logoutBtn').classList.remove('hidden');
+    renderProfile();
     if(me.merchant){
-      $('#onboard').classList.add('hidden');
+      document.querySelector('#onboard').classList.add('hidden');
       showMerchant(me.merchant);
       await loadSummary();
     }
-  } catch(e) { if(e.status !== 401) out('#msg', fmtErr(e)); }
+  } catch(e) {
+    document.querySelector('#logoutBtn').classList.add('hidden');
+    document.querySelector('#profile').classList.add('hidden');
+    if(e.status !== 401) out('#msg', fmtErr(e));
+  }
 }
-$('#logoutBtn').onclick = async()=>{ try{ await api('/api/auth/logout',{method:'POST'}); location.reload(); }catch(e){ alert('Sign out failed: '+fmtErr(e)); } };
+document.querySelector('#logoutBtn').onclick = async()=>{ try{ await api('/api/auth/logout',{method:'POST'}); location.reload(); }catch(e){ alert('Sign out failed: '+fmtErr(e)); } };
 document.querySelector('#registerForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  const email=$('#regEmail').value.trim(), name=$('#regName').value.trim(), pass=$('#regPass').value;
+  const email=document.querySelector('#regEmail').value.trim(), name=document.querySelector('#regName').value.trim(), pass=document.querySelector('#regPass').value;
   if(!name || name.length<2){ out('#msg','Enter your name (at least 2 characters).'); return; }
   if(!validateEmail(email)){ out('#msg','Enter a valid business email.'); return; }
   if(!pass || pass.length<10){ out('#msg','Password must be at least 10 characters.'); return; }
-  try{ const x=await api('/api/auth/register',{method:'POST',body:JSON.stringify({email,display_name:name,password:pass})}); out('#msg','Account created. Your demo code: '+x.demo_verification_code,true); $('#verify').classList.remove('hidden'); $('#code').focus(); }catch(e){out('#msg',fmtErr(e));}
+  try{ const x=await api('/api/auth/register',{method:'POST',body:JSON.stringify({email,display_name:name,password:pass})}); out('#msg','Account created. Your demo code: '+x.demo_verification_code,true); document.querySelector('#verify').classList.remove('hidden'); document.querySelector('#code').focus(); }catch(e){out('#msg',fmtErr(e));}
 });
 document.querySelector('#loginForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  const email=$('#loginEmail').value.trim(), pass=$('#loginPass').value;
+  const email=document.querySelector('#loginEmail').value.trim(), pass=document.querySelector('#loginPass').value;
   if(!validateEmail(email)){ out('#msg','Enter a valid email address.'); return; }
   if(!pass){ out('#msg','Enter your password.'); return; }
   try{ await api('/api/auth/login',{method:'POST',body:JSON.stringify({email,password:pass})}); await load(); }catch(e){out('#msg',fmtErr(e));}
 });
 document.querySelector('#verifyForm').addEventListener('submit', async (e)=>{
   e.preventDefault();
-  const code=$('#code').value.trim();
+  const code=document.querySelector('#code').value.trim();
   if(!/^\d{6}$/.test(code)){ out('#msg','Enter the 6-digit verification code.'); return; }
   try{ await api('/api/auth/verify',{method:'POST',body:JSON.stringify({code})}); await load(); }catch(e){out('#msg',fmtErr(e));}
 });
-$('#lookup').onclick = async()=>{
-  const acct = $('#account').value.trim();
+document.querySelector('#lookup').onclick = async()=>{
+  const acct = document.querySelector('#account').value.trim();
   if (!/^\d{10}$/.test(acct)){ out('#onboardMsg','Enter a 10-digit account number first'); return; }
   try{
     const d = await api('/api/merchants/lookup?account=' + encodeURIComponent(acct));
-    $('#accountName').value = d.account_name;
-    $('#city').value = d.city || '';
-    $('#business').placeholder = d.account_name;
+    document.querySelector('#accountName').value = d.account_name;
+    document.querySelector('#city').value = d.city || '';
+    document.querySelector('#business').placeholder = d.account_name;
     out('#onboardMsg', 'Fetched from '+ d.source + ': ' + d.account_name + ' · ' + (d.city||'city n/a'), true);
   }catch(e){ out('#onboardMsg', fmtErr(e)); }
 };
-$('#connect').onclick = async()=>{
-  const acct = $('#account').value.trim();
+document.querySelector('#connect').onclick = async()=>{
+  const acct = document.querySelector('#account').value.trim();
   if (!/^\d{10}$/.test(acct)){ out('#onboardMsg','Enter a 10-digit account number first'); return; }
-  if(!$('#business').value.trim()){ out('#onboardMsg','Add a display business name'); return; }
-  if(!$('#type').value.trim()){ out('#onboardMsg','Add a business category (e.g. restaurant)'); return; }
+  if(!document.querySelector('#business').value.trim()){ out('#onboardMsg','Add a display business name'); return; }
+  if(!document.querySelector('#type').value.trim()){ out('#onboardMsg','Add a business category (e.g. restaurant)'); return; }
   try{
-    const x=await api('/api/merchants',{method:'POST',body:JSON.stringify({business_name:$('#business').value, merchant_type:$('#type').value, city:$('#city').value, account_number:acct})});
+    const x=await api('/api/merchants',{method:'POST',body:JSON.stringify({business_name:document.querySelector('#business').value, merchant_type:document.querySelector('#type').value, city:document.querySelector('#city').value, account_number:acct})});
     apiKey=x.api_key; localStorage.setItem('moncMerchantApiKey',apiKey);
-    $('#apiKey').textContent=apiKey;
+    document.querySelector('#apiKey').textContent=apiKey;
     showMerchant(x.merchant);
-    $('#onboard').classList.add('hidden');
+    document.querySelector('#onboard').classList.add('hidden');
     out('#onboardMsg','Account connected',true);
     await loadSummary();
   }catch(e){out('#onboardMsg',fmtErr(e));}
 };
 let amountVal = 0;
-function renderAmount(){ amountVal = Number($('#amount').value) || 0; $('#amountReadout').textContent = '= NGN ' + (amountVal/100).toLocaleString(undefined,{minimumFractionDigits:2}); }
+function renderAmount(){ amountVal = Number(document.querySelector('#amount').value) || 0; document.querySelector('#amountReadout').textContent = '= NGN ' + (amountVal/100).toLocaleString(undefined,{minimumFractionDigits:2}); }
 const amountEl = document.querySelector('#amount'); if(amountEl) amountEl.addEventListener('input', renderAmount);
-$('#copyKey').onclick = async()=>{ try{ await navigator.clipboard.writeText(apiKey); $('#copyKey').textContent='COPIED'; setTimeout(()=>$('#copyKey').textContent='COPY API KEY',1200);}catch(e){ out('#onboardMsg','Copy manually: select the key text'); } };
-$('#createIntent').onclick = async()=>{
+document.querySelector('#copyKey').onclick = async()=>{ try{ await navigator.clipboard.writeText(apiKey); document.querySelector('#copyKey').textContent='COPIED'; setTimeout(()=>document.querySelector('#copyKey').textContent='COPY API KEY',1200);}catch(e){ out('#onboardMsg','Copy manually: select the key text'); } };
+document.querySelector('#createIntent').onclick = async()=>{
   if(!apiKey){out('#intentMsg','Connect a settlement account first');return;}
-  const order=$('#order').value.trim(), amt=Number($('#amount').value), prod=$('#product').value.trim();
+  const order=document.querySelector('#order').value.trim(), amt=Number(document.querySelector('#amount').value), prod=document.querySelector('#product').value.trim();
   if(!order){ out('#intentMsg','Enter an order reference.'); return; }
   if(!amt || amt<=0){ out('#intentMsg','Enter a valid amount in kobo.'); return; }
   if(!prod){ out('#intentMsg','Enter a product name.'); return; }
-  try{ const x=await api('/api/v1/payment-intents',{method:'POST',headers:{'X-MONC-API-Key':apiKey},body:JSON.stringify({order_id:order,amount_minor:amt,currency:$('#currency').value,product_name:prod,product_type:$('#productType').value,product_code:$('#productCode').value,checkout_domain:$('#domain').value,initiator_type:$('#initiator').value})}); out('#intentMsg','Payment request created: '+x.payment_intent_id,true); await loadSummary(); $('#intentMsg').scrollIntoView({behavior:'smooth'}); }catch(e){out('#intentMsg',fmtErr(e));}
+  try{ const x=await api('/api/v1/payment-intents',{method:'POST',headers:{'X-MONC-API-Key':apiKey},body:JSON.stringify({order_id:order,amount_minor:amt,currency:document.querySelector('#currency').value,product_name:prod,product_type:document.querySelector('#productType').value,product_code:document.querySelector('#productCode').value,checkout_domain:document.querySelector('#domain').value,initiator_type:document.querySelector('#initiator').value})}); out('#intentMsg','Payment request created: '+x.payment_intent_id,true); await loadSummary(); document.querySelector('#intentMsg').scrollIntoView({behavior:'smooth'}); }catch(e){out('#intentMsg',fmtErr(e));}
 };
 renderAmount();
+// ---- QR Scanner for merchant ----
+let stopScan=null;
+function showScanResult(tokenStr){
+  const el=document.getElementById('scanResult');
+  el.classList.remove('hidden');
+  try{
+    const data=tokenDecode(tokenStr);
+    el.innerHTML=`<div class="callout ok"><b>Token scanned</b>Instrument ${esc(data.instrument_id.slice(0,8))} · locator ${esc(data.locator.slice(0,12))}…</div><div class="tokenbox" style="margin-top:8px">${esc(tokenStr.slice(0,120))}…</div><div class="actions" style="margin-top:8px"><button class="btn small" onclick="navigator.clipboard.writeText('${tokenStr.replace(/'/g,"\\'")}')">COPY FULL TOKEN</button></div>`;
+    el.scrollIntoView({behavior:'smooth'});
+  }catch(e){
+    el.innerHTML=`<div class="callout err"><b>Not a MONC token</b>${esc(e.message)}</div>`;
+  }
+}
+document.getElementById('startScan').onclick = async()=>{
+  const video=document.getElementById('scanVideo');
+  const hint=document.querySelector('.scanner-hint');
+  try{
+    hint.textContent='Scanning… point at QR';
+    document.getElementById('stopScan').classList.remove('hidden');
+    stopScan=await startScanner(video, (result, stop)=>{
+      hint.textContent='Got it!';
+      showScanResult(result);
+      stop(); document.getElementById('stopScan').classList.add('hidden'); hint.textContent='Camera off';
+    });
+  }catch(e){ out('#scanResult', fmtErr(e)); hint.textContent='Camera failed: '+fmtErr(e); }
+};
+document.getElementById('stopScan').onclick = ()=>{ if(stopScan) stopScan(); stopScan=null; document.getElementById('stopScan').classList.add('hidden'); document.querySelector('.scanner-hint').textContent='Camera off'; };
+document.getElementById('scanFile').addEventListener('change', async (e)=>{
+  const file=e.target.files[0]; if(!file) return;
+  try{
+    const bitmap=await createImageBitmap(file);
+    if('BarcodeDetector' in window){
+      const detector=new BarcodeDetector({formats:['qr_code']});
+      const codes=await detector.detect(bitmap);
+      if(codes.length) showScanResult(codes[0].rawValue);
+      else out('#scanResult','No QR found in image');
+    } else {
+      out('#scanResult','BarcodeDetector not supported — paste token manually');
+    }
+  }catch(err){ out('#scanResult', fmtErr(err)); }
+});
 load();
 </script>
 </body>

@@ -25,38 +25,47 @@
     <li id="stepSettled"><b>3 · Settled</b>Merchant gets credited</li>
   </ol>
 
-  <section class="hero">
+  <section class="hero animate-fadeIn">
     <div class="eyebrow">// ONE EXACT REQUEST · YOU DECIDE</div>
     <h1>REVIEW THIS<br>PAYMENT FIRST</h1>
     <p>A merchant — or an AI agent — proposed this fixed purchase. You get to see exactly what it is, prove you own the card, and MONC will settle it only if every check passes and <b>you</b> approve the debit.</p>
   </section>
 
-  <section class="panel">
-    <div class="ph"><b>Payment request</b><span id="expiry">LOADING</span></div>
+  <section class="panel animate-slideUp">
+    <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Payment request</b><span id="expiry">LOADING</span></div>
     <div class="pb">
       <div id="intent" class="rows"></div>
     </div>
   </section>
 
-  <section id="authorize" class="panel">
-    <div class="ph"><b>Approve as the owner</b><span>YOUR TOKEN + YOUR PATTERN</span></div>
+  <section id="authorize" class="panel animate-slideUp">
+    <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Approve as the owner</b><span>YOUR TOKEN + YOUR PATTERN</span></div>
     <div class="pb">
       <div class="callout"><b>Nothing leaves this browser</b>The private key lives inside your token and is unlocked by your pattern, right here. MONC only sees the cryptographic proof and the exact amount you're approving.</div>
       <div class="inputgrp"><label for="token">Your MONC token · paste the text or scan your QR</label>
-        <textarea id="token" placeholder="MONC1...."></textarea>
+        <textarea id="token" placeholder="MONC1...." rows="3"></textarea>
+        <div class="actions" style="margin-top:8px">
+          <button class="btn small" id="scanTokenBtn" type="button" style="display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg> SCAN QR</button>
+          <label class="btn small" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> UPLOAD QR <input type="file" id="scanFile" accept="image/*" style="display:none"></label>
+          <button class="btn small" id="pasteTokenBtn" type="button">PASTE</button>
+        </div>
+      </div>
+      <div id="scanWrap" class="hidden" style="margin-top:12px">
+        <div class="scanner-wrap"><div class="scanner"><video id="scanVideo" playsinline muted></video><div class="scanner-overlay"></div><div class="scanner-hint">Point camera at QR</div></div></div>
+        <div class="actions" style="margin-top:8px"><button class="btn small" id="stopScan" type="button">STOP CAMERA</button></div>
       </div>
       <div class="inputgrp"><label for="pattern">Your 4×4 unlock pattern</label><div id="pattern" class="pattern"></div>
         <p id="patternStatus" class="hint">Draw the same pattern you created the card with. It never leaves this page.</p>
       </div>
       <div class="form-actions">
-        <button class="btn primary lg" id="pay">APPROVE THIS PAYMENT →</button>
+        <button class="btn primary lg" id="pay" style="display:inline-flex;align-items:center;gap:8px;justify-content:center">APPROVE THIS PAYMENT <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
       </div>
       <div id="result" role="status" aria-live="polite"></div>
     </div>
   </section>
 
   <section id="verification" class="panel hidden">
-    <div class="ph"><b>Live verification</b><span>COLLECTED FROM THE SOURCE, RIGHT NOW</span></div>
+    <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Live verification</b><span>COLLECTED FROM THE SOURCE, RIGHT NOW</span></div>
     <div class="pb">
       <p style="font-size:12px;color:var(--muted)">MONC re-checked each condition at its authoritative source before deciding. <b>Fail-closed:</b> anything that could not be confirmed was treated as a no.</p>
       <div id="verificationList" class="vlist"></div>
@@ -64,7 +73,7 @@
   </section>
 
   <section id="consent" class="panel hidden">
-    <div class="ph"><b>Approve the debit</b><span id="consentState">NOT STARTED</span></div>
+    <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Approve the debit</b><span id="consentState">NOT STARTED</span></div>
     <div class="pb">
       <div class="callout"><b>How funding works</b>Approving this page does not move money. Next, ALAT Authenticator asks <i>you</i> to approve the exact debit from your Wema account, then Wema settles the merchant payout.</div>
       <div class="grid g2">
@@ -83,7 +92,7 @@
     <div class="ph"><b>Payment progress</b><span id="lifecycleMode">STATUS</span></div>
     <div class="pb">
       <div id="stages" class="rows"></div>
-      <div class="actions"><button class="btn small" id="refreshStatus">REFRESH STATUS</button></div>
+      <div class="actions"><button class="btn small" id="refreshStatus" style="display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> REFRESH STATUS</button></div>
       <div id="final" class="notice hidden" style="margin-top:14px"></div>
     </div>
   </section>
@@ -104,7 +113,7 @@ let intent, pat = makePattern($('#pattern'));
 function setPayLabel(){
   if (intent && intent.amount_minor !== undefined){
     const n = (intent.amount_minor/100).toLocaleString(undefined,{minimumFractionDigits:2});
-    $('#pay').textContent = 'APPROVE ' + n + ' ' + (intent.currency || 'NGN') + ' →';
+    $('#pay').innerHTML = 'APPROVE ' + n + ' ' + (intent.currency || 'NGN') + ' <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
   }
 }
 function renderVerification(verification){
@@ -242,6 +251,37 @@ $('#refreshStatus').onclick = async () => {
     const s = await api('/api/payment-intents/' + intent.payment_intent_id + '/status');
     showLifecycle(s);
   }catch(e){ $('#final').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; }
+};
+
+// ---- QR scan for token ----
+let stopScan=null;
+document.getElementById('scanTokenBtn').onclick = async()=>{
+  const wrap=document.getElementById('scanWrap');
+  const video=document.getElementById('scanVideo');
+  wrap.classList.remove('hidden');
+  try{
+    stopScan=await startScanner(video, (result, stop)=>{
+      document.getElementById('token').value=result;
+      wrap.classList.add('hidden');
+      stop(); stopScan=null;
+    });
+  }catch(e){ alert(e.message); wrap.classList.add('hidden'); }
+};
+document.getElementById('stopScan').onclick = ()=>{ if(stopScan) stopScan(); stopScan=null; document.getElementById('scanWrap').classList.add('hidden'); };
+document.getElementById('scanFile').addEventListener('change', async (e)=>{
+  const file=e.target.files[0]; if(!file) return;
+  try{
+    const bitmap=await createImageBitmap(file);
+    if('BarcodeDetector' in window){
+      const detector=new BarcodeDetector({formats:['qr_code']});
+      const codes=await detector.detect(bitmap);
+      if(codes.length) document.getElementById('token').value=codes[0].rawValue;
+      else alert('No QR found');
+    } else alert('Scanner not supported — paste manually');
+  }catch(err){ alert(err.message); }
+});
+document.getElementById('pasteTokenBtn').onclick = async()=>{
+  try{ const t=await navigator.clipboard.readText(); document.getElementById('token').value=t; }catch(e){ alert('Clipboard not accessible'); }
 };
 
 load();
