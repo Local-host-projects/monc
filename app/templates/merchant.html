@@ -32,19 +32,19 @@
   <section id="auth" class="panel">
     <div class="ph"><b>Sign in to accept payments</b><span>VERIFIED MONC ACCOUNT REQUIRED</span></div>
     <div class="grid g2">
-      <div class="authbox">
+      <form id="registerForm" class="authbox" novalidate>
         <h3 style="margin:0 0 10px">Create an account</h3>
-        <div class="inputgrp"><label for="regName">Your name</label><input id="regName" type="text" placeholder="e.g. Ada Obi"></div>
-        <div class="inputgrp"><label for="regEmail">Business email</label><input id="regEmail" type="email" placeholder="you@example.com"></div>
-        <div class="inputgrp"><label for="regPass">Password</label><input id="regPass" type="password" placeholder="10+ characters"></div>
-        <button class="btn primary" id="register">CREATE ACCOUNT</button>
-      </div>
-      <div class="authbox">
+        <div class="inputgrp"><label for="regName">Your name</label><input id="regName" type="text" placeholder="e.g. Ada Obi" required></div>
+        <div class="inputgrp"><label for="regEmail">Business email</label><input id="regEmail" type="email" placeholder="you@example.com" required></div>
+        <div class="inputgrp"><label for="regPass">Password</label><input id="regPass" type="password" placeholder="10+ characters" required minlength="10"></div>
+        <button class="btn primary" id="register" type="submit">CREATE ACCOUNT</button>
+      </form>
+      <form id="loginForm" class="authbox" novalidate>
         <h3 style="margin:0 0 10px">Sign in</h3>
-        <div class="inputgrp"><label for="loginEmail">Email</label><input id="loginEmail" type="email" placeholder="you@example.com"></div>
-        <div class="inputgrp"><label for="loginPass">Password</label><input id="loginPass" type="password" placeholder="Your password"></div>
-        <button class="btn" id="login">SIGN IN</button>
-      </div>
+        <div class="inputgrp"><label for="loginEmail">Email</label><input id="loginEmail" type="email" placeholder="you@example.com" required></div>
+        <div class="inputgrp"><label for="loginPass">Password</label><input id="loginPass" type="password" placeholder="Your password" required></div>
+        <button class="btn" id="login" type="submit">SIGN IN</button>
+      </form>
     </div>
     <div id="msg" role="status" aria-live="polite" style="padding:0 16px 16px"></div>
   </section>
@@ -52,8 +52,10 @@
   <section id="verify" class="panel hidden">
     <div class="ph"><b>Verify your identity</b><span>BOTH PARTIES NEED VERIFIED ACCOUNTS</span></div>
     <div class="pb">
-      <div class="inputgrp"><label for="code">6-digit demo verification code</label><input id="code" inputmode="numeric" maxlength="6" placeholder="000000"></div>
-      <button class="btn primary" id="verifyBtn">VERIFY ACCOUNT</button>
+      <form id="verifyForm" novalidate>
+        <div class="inputgrp"><label for="code">6-digit demo verification code</label><input id="code" inputmode="numeric" maxlength="6" placeholder="000000" required pattern="\d{6}"></div>
+        <button class="btn primary" id="verifyBtn" type="submit">VERIFY ACCOUNT</button>
+      </form>
     </div>
   </section>
 
@@ -129,8 +131,7 @@
 <script src="/static/app.js"></script>
 <script>
 let apiKey = localStorage.getItem('moncMerchantApiKey') || '', me = null;
-// use the $/$$ from app.js - do not shadow it. esc stays local.
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+// use $/$$/esc from app.js - do not redeclare them here
 function fmtErr(e){ if(!e) return 'Request failed'; if(e.message) return typeof e.message==='string'?e.message:(Array.isArray(e.message)?e.message.map(x=>x.msg||JSON.stringify(x)).join(' · '):String(e.message)); if(e.detail) return Array.isArray(e.detail)?e.detail.map(x=>x.msg||JSON.stringify(x)).join(' · '):String(e.detail); return String(e); }
 function validateEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 function out(selector, text, ok = false){ const el = document.querySelector(selector); if(!el) return; const txt = typeof text==='string'?text:(text&&text.message?fmtErr(text):String(text)); el.textContent = txt; el.className = ok ? 'success' : 'error'; if(!ok) console.warn('[MONC]', selector, txt); }
@@ -172,24 +173,27 @@ async function load(){
   } catch(e) { if(e.status !== 401) out('#msg', fmtErr(e)); }
 }
 $('#logoutBtn').onclick = async()=>{ try{ await api('/api/auth/logout',{method:'POST'}); location.reload(); }catch(e){ alert('Sign out failed: '+fmtErr(e)); } };
-$('#register').onclick = async()=>{
+document.querySelector('#registerForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
   const email=$('#regEmail').value.trim(), name=$('#regName').value.trim(), pass=$('#regPass').value;
   if(!name || name.length<2){ out('#msg','Enter your name (at least 2 characters).'); return; }
   if(!validateEmail(email)){ out('#msg','Enter a valid business email.'); return; }
   if(!pass || pass.length<10){ out('#msg','Password must be at least 10 characters.'); return; }
   try{ const x=await api('/api/auth/register',{method:'POST',body:JSON.stringify({email,display_name:name,password:pass})}); out('#msg','Account created. Your demo code: '+x.demo_verification_code,true); $('#verify').classList.remove('hidden'); $('#code').focus(); }catch(e){out('#msg',fmtErr(e));}
-};
-$('#login').onclick = async()=>{
+});
+document.querySelector('#loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
   const email=$('#loginEmail').value.trim(), pass=$('#loginPass').value;
   if(!validateEmail(email)){ out('#msg','Enter a valid email address.'); return; }
   if(!pass){ out('#msg','Enter your password.'); return; }
   try{ await api('/api/auth/login',{method:'POST',body:JSON.stringify({email,password:pass})}); await load(); }catch(e){out('#msg',fmtErr(e));}
-};
-$('#verifyBtn').onclick = async()=>{
+});
+document.querySelector('#verifyForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
   const code=$('#code').value.trim();
   if(!/^\d{6}$/.test(code)){ out('#msg','Enter the 6-digit verification code.'); return; }
   try{ await api('/api/auth/verify',{method:'POST',body:JSON.stringify({code})}); await load(); }catch(e){out('#msg',fmtErr(e));}
-};
+});
 $('#lookup').onclick = async()=>{
   const acct = $('#account').value.trim();
   if (!/^\d{10}$/.test(acct)){ out('#onboardMsg','Enter a 10-digit account number first'); return; }

@@ -8,7 +8,7 @@ from pathlib import Path
 import base64
 
 from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -57,6 +57,15 @@ templates = Jinja2Templates(directory=ROOT / "templates")
 Base.metadata.create_all(bind=engine)
 upgrade_existing_schema()
 COOKIE_SECURE = os.getenv("MONC_COOKIE_SECURE", "0") == "1"
+
+
+@app.get("/sw.js")
+def service_worker():
+    # Serve the placeholder SW at the root scope so a stray registration can update and unregister cleanly.
+    sw_path = ROOT / "static" / "sw.js"
+    if sw_path.exists():
+        return FileResponse(sw_path, media_type="application/javascript", headers={"Cache-Control": "no-store"})
+    return Response(status_code=404)
 
 
 class RegisterIn(BaseModel):

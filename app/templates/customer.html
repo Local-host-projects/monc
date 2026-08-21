@@ -47,20 +47,20 @@
   <section id="auth" class="panel">
     <div class="ph"><b>Welcome to MONC</b><span>TAKES ABOUT A MINUTE</span></div>
     <div class="grid g2">
-      <div class="authbox">
+      <form id="registerForm" class="authbox" novalidate>
         <h3 style="margin:0 0 10px">Create your account</h3>
-        <div class="inputgrp"><label for="regName">Your name</label><input id="regName" type="text" autocomplete="name" placeholder="e.g. Ada Obi"></div>
-        <div class="inputgrp"><label for="regEmail">Email</label><input id="regEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
-        <div class="inputgrp"><label for="regPass">Create a password</label><input id="regPass" type="password" autocomplete="new-password" placeholder="10+ characters"><div class="hint">The demo sends a 6-digit code to your screen right after you sign up.</div></div>
-        <button class="btn primary" id="register">CREATE ACCOUNT</button>
+        <div class="inputgrp"><label for="regName">Your name</label><input id="regName" type="text" autocomplete="name" placeholder="e.g. Ada Obi" required></div>
+        <div class="inputgrp"><label for="regEmail">Email</label><input id="regEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
+        <div class="inputgrp"><label for="regPass">Create a password</label><input id="regPass" type="password" autocomplete="new-password" placeholder="10+ characters" required minlength="10"><div class="hint">The demo sends a 6-digit code to your screen right after you sign up.</div></div>
+        <button class="btn primary" id="register" type="submit">CREATE ACCOUNT</button>
         <div id="authMsg" role="status" aria-live="polite" style="margin-top:10px"></div>
-      </div>
-      <div class="authbox">
+      </form>
+      <form id="loginForm" class="authbox" novalidate>
         <h3 style="margin:0 0 10px">Already have an account?</h3>
-        <div class="inputgrp"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>
-        <div class="inputgrp"><label for="loginPass">Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="Your password"></div>
-        <button class="btn" id="login">SIGN IN</button>
-      </div>
+        <div class="inputgrp"><label for="loginEmail">Email</label><input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com" required></div>
+        <div class="inputgrp"><label for="loginPass">Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="Your password" required></div>
+        <button class="btn" id="login" type="submit">SIGN IN</button>
+      </form>
     </div>
   </section>
 
@@ -68,8 +68,10 @@
     <div class="ph"><b>Verify your account</b><span>AN EXTRA 30 SECONDS</span></div>
     <div class="pb">
       <div class="callout"><b>Why we ask</b>A verified MONC account is required to own an instrument or receive a transfer — it's what lets the other party trust your token.</div>
-      <div class="inputgrp"><label for="verifyCode">6-digit verification code</label><input id="verifyCode" inputmode="numeric" maxlength="6" placeholder="000000"></div>
-      <button class="btn primary" id="verifyBtn">VERIFY ACCOUNT</button>
+      <form id="verifyForm" novalidate>
+        <div class="inputgrp"><label for="verifyCode">6-digit verification code</label><input id="verifyCode" inputmode="numeric" maxlength="6" placeholder="000000" required pattern="\d{6}"></div>
+        <button class="btn primary" id="verifyBtn" type="submit">VERIFY ACCOUNT</button>
+      </form>
     </div>
   </section>
 
@@ -165,14 +167,14 @@ No purchases after 10 PM</textarea><div class="hint">One rule per line. Anything
 <script src="/static/app.js"></script>
 <script>
 let me = null, currentToken = null, pat = null;
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function msg(t, ok = false){ const el=document.querySelector('#authMsg'); if(!el) return; const txt = Array.isArray(t) ? t.map(x=>x.msg||JSON.stringify(x)).join(' · ') : String(t); el.textContent=txt; el.className=ok?'success':'error'; if(!ok) console.warn('[MONC]', txt); }
 function showLoading(){ const el=document.querySelector('#overlay'); if(el) el.classList.remove('hidden'); }
 function hideLoading(){ const el=document.querySelector('#overlay'); if(el) el.classList.add('hidden'); }
 function showSuccess(){ const el=document.querySelector('#successOverlay'); if(!el) return; el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'),1500); }
 function fmtErr(e){ if(!e) return 'Request failed'; if(typeof e.message==='string') return e.message; if(Array.isArray(e.message)) return e.message.map(x=>x.msg||JSON.stringify(x)).join(' · '); if(e.detail) return Array.isArray(e.detail)?e.detail.map(x=>x.msg||JSON.stringify(x)).join(' · '):String(e.detail); return String(e.message||e); }
 
-async function api(path, opts={}){
+// customer api with loading overlay - overwrites app.js api (no duplicate declaration)
+api = async function(path, opts={}){
   showLoading();
   try{
     const headers = opts.headers || {};
@@ -188,7 +190,7 @@ async function api(path, opts={}){
     }
     return data;
   }finally{ hideLoading(); }
-}
+};
 
 function setStep(id){
   ['stepSignin','stepVerify','stepIssue','stepSpend'].forEach(s => {
@@ -266,7 +268,8 @@ function renderMe(){
     : '<div class="empty">No cards waiting to be handed to you.</div>';
 }
 
-$('#register').onclick = async () => {
+document.querySelector('#registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
   const email=$('#regEmail').value.trim(), name=$('#regName').value.trim(), pass=$('#regPass').value;
   if(!name || name.length<2){ msg('Enter your name (at least 2 characters).'); return; }
   if(!validateEmail(email)){ msg('Enter a valid email address.'); return; }
@@ -278,9 +281,10 @@ $('#register').onclick = async () => {
     $('#verify').classList.remove('hidden');
     $('#verifyCode').focus();
   }catch(e){ msg(fmtErr(e)); }
-};
+});
 
-$('#login').onclick = async () => {
+document.querySelector('#loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
   const email=$('#loginEmail').value.trim(), pass=$('#loginPass').value;
   if(!validateEmail(email)){ msg('Enter a valid email address.'); return; }
   if(!pass){ msg('Enter your password.'); return; }
@@ -288,16 +292,17 @@ $('#login').onclick = async () => {
     await api('/api/auth/login', {method:'POST', body:JSON.stringify({email, password:pass})});
     await load();
   }catch(e){ msg(fmtErr(e)); }
-};
+});
 
-$('#verifyBtn').onclick = async () => {
+document.querySelector('#verifyForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
   const code=$('#verifyCode').value.trim();
   if(!/^\d{6}$/.test(code)){ msg('Enter the 6-digit verification code.'); return; }
   try{
     await api('/api/auth/verify', {method:'POST', body:JSON.stringify({code})});
     await load();
   }catch(e){ msg(fmtErr(e)); }
-};
+});
 
 $('#logoutBtn').onclick = async ()=>{
   try{ await api('/api/auth/logout', {method:'POST'}); location.reload(); }catch(e){ alert('Sign out failed: '+fmtErr(e)); }
