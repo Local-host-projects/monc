@@ -129,9 +129,11 @@
 <script src="/static/app.js"></script>
 <script>
 let apiKey = localStorage.getItem('moncMerchantApiKey') || '', me = null;
-function $(s){return document.querySelector(s)}
+// use the $/$$ from app.js - do not shadow it. esc stays local.
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function out(selector, text, ok = false){ const el = $(selector); if(!el) return; el.textContent = text; el.className = ok ? 'success' : 'error'; }
+function fmtErr(e){ if(!e) return 'Request failed'; if(e.message) return typeof e.message==='string'?e.message:(Array.isArray(e.message)?e.message.map(x=>x.msg||JSON.stringify(x)).join(' · '):String(e.message)); if(e.detail) return Array.isArray(e.detail)?e.detail.map(x=>x.msg||JSON.stringify(x)).join(' · '):String(e.detail); return String(e); }
+function validateEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+function out(selector, text, ok = false){ const el = document.querySelector(selector); if(!el) return; const txt = typeof text==='string'?text:(text&&text.message?fmtErr(text):String(text)); el.textContent = txt; el.className = ok ? 'success' : 'error'; if(!ok) console.warn('[MONC]', selector, txt); }
 function statusPill(status){
   const cls = {'pending':'idle','authorized':'ok','consent_pending':'warn','debited':'warn','successful':'ok','failed':'err','reversed':'err','denied':'err','expired':'idle'}[status] || 'idle';
   return `<span class="pill ${cls}">${esc(status)}</span>`;
@@ -154,7 +156,7 @@ async function loadSummary(){
     $('#intents').innerHTML = x.payment_intents.length
       ? x.payment_intents.map(i => `<div class="intent"><b>${esc(i.order_id)} · ${esc((i.amount_minor/100).toLocaleString())} ${esc(i.currency)}</b> ${statusPill(i.status)}<small>${esc(i.product_name)}</small><a class="btn small" href="/checkout/${encodeURIComponent(i.payment_intent_id)}">OPEN REQUEST →</a></div>`).join('')
       : '<div class="empty">No payment requests yet. Create one above.</div>';
-  } catch(e) { out('#intents', e.message); }
+  } catch(e) { out('#intents', fmtErr(e)); }
 }
 async function load(){
   try {
@@ -167,12 +169,27 @@ async function load(){
       showMerchant(me.merchant);
       await loadSummary();
     }
-  } catch(e) { if(e.status !== 401) out('#msg', e.message); }
+  } catch(e) { if(e.status !== 401) out('#msg', fmtErr(e)); }
 }
-$('#logoutBtn').onclick = async()=>{ try{ await api('/api/auth/logout',{method:'POST'}); location.reload(); }catch(e){ alert('Sign out failed: '+e.message); } };
-$('#register').onclick = async()=>{ try{ const x=await api('/api/auth/register',{method:'POST',body:JSON.stringify({email:$('#regEmail').value,display_name:$('#regName').value,password:$('#regPass').value})}); out('#msg','Account created. Your demo code: '+x.demo_verification_code,true); $('#verify').classList.remove('hidden'); $('#code').focus(); }catch(e){out('#msg',e.message);} };
-$('#login').onclick = async()=>{ try{ await api('/api/auth/login',{method:'POST',body:JSON.stringify({email:$('#loginEmail').value,password:$('#loginPass').value})}); await load(); }catch(e){out('#msg',e.message);} };
-$('#verifyBtn').onclick = async()=>{ try{ await api('/api/auth/verify',{method:'POST',body:JSON.stringify({code:$('#code').value})}); await load(); }catch(e){out('#msg',e.message);} };
+$('#logoutBtn').onclick = async()=>{ try{ await api('/api/auth/logout',{method:'POST'}); location.reload(); }catch(e){ alert('Sign out failed: '+fmtErr(e)); } };
+$('#register').onclick = async()=>{
+  const email=$('#regEmail').value.trim(), name=$('#regName').value.trim(), pass=$('#regPass').value;
+  if(!name || name.length<2){ out('#msg','Enter your name (at least 2 characters).'); return; }
+  if(!validateEmail(email)){ out('#msg','Enter a valid business email.'); return; }
+  if(!pass || pass.length<10){ out('#msg','Password must be at least 10 characters.'); return; }
+  try{ const x=await api('/api/auth/register',{method:'POST',body:JSON.stringify({email,display_name:name,password:pass})}); out('#msg','Account created. Your demo code: '+x.demo_verification_code,true); $('#verify').classList.remove('hidden'); $('#code').focus(); }catch(e){out('#msg',fmtErr(e));}
+};
+$('#login').onclick = async()=>{
+  const email=$('#loginEmail').value.trim(), pass=$('#loginPass').value;
+  if(!validateEmail(email)){ out('#msg','Enter a valid email address.'); return; }
+  if(!pass){ out('#msg','Enter your password.'); return; }
+  try{ await api('/api/auth/login',{method:'POST',body:JSON.stringify({email,password:pass})}); await load(); }catch(e){out('#msg',fmtErr(e));}
+};
+$('#verifyBtn').onclick = async()=>{
+  const code=$('#code').value.trim();
+  if(!/^\d{6}$/.test(code)){ out('#msg','Enter the 6-digit verification code.'); return; }
+  try{ await api('/api/auth/verify',{method:'POST',body:JSON.stringify({code})}); await load(); }catch(e){out('#msg',fmtErr(e));}
+};
 $('#lookup').onclick = async()=>{
   const acct = $('#account').value.trim();
   if (!/^\d{10}$/.test(acct)){ out('#onboardMsg','Enter a 10-digit account number first'); return; }
@@ -182,7 +199,7 @@ $('#lookup').onclick = async()=>{
     $('#city').value = d.city || '';
     $('#business').placeholder = d.account_name;
     out('#onboardMsg', 'Fetched from '+ d.source + ': ' + d.account_name + ' · ' + (d.city||'city n/a'), true);
-  }catch(e){ out('#onboardMsg', e.message); }
+  }catch(e){ out('#onboardMsg', fmtErr(e)); }
 };
 $('#connect').onclick = async()=>{
   const acct = $('#account').value.trim();
@@ -197,13 +214,20 @@ $('#connect').onclick = async()=>{
     $('#onboard').classList.add('hidden');
     out('#onboardMsg','Account connected',true);
     await loadSummary();
-  }catch(e){out('#onboardMsg',e.message);}
+  }catch(e){out('#onboardMsg',fmtErr(e));}
 };
 let amountVal = 0;
 function renderAmount(){ amountVal = Number($('#amount').value) || 0; $('#amountReadout').textContent = '= NGN ' + (amountVal/100).toLocaleString(undefined,{minimumFractionDigits:2}); }
-$('#amount').addEventListener('input', renderAmount);
+const amountEl = document.querySelector('#amount'); if(amountEl) amountEl.addEventListener('input', renderAmount);
 $('#copyKey').onclick = async()=>{ try{ await navigator.clipboard.writeText(apiKey); $('#copyKey').textContent='COPIED'; setTimeout(()=>$('#copyKey').textContent='COPY API KEY',1200);}catch(e){ out('#onboardMsg','Copy manually: select the key text'); } };
-$('#createIntent').onclick = async()=>{ if(!apiKey){out('#intentMsg','Connect a settlement account first');return;} try{ const x=await api('/api/v1/payment-intents',{method:'POST',headers:{'X-MONC-API-Key':apiKey},body:JSON.stringify({order_id:$('#order').value,amount_minor:Number($('#amount').value),currency:$('#currency').value,product_name:$('#product').value,product_type:$('#productType').value,product_code:$('#productCode').value,checkout_domain:$('#domain').value,initiator_type:$('#initiator').value})}); out('#intentMsg','Payment request created: '+x.payment_intent_id,true); await loadSummary(); $('#intentMsg').scrollIntoView({behavior:'smooth'}); }catch(e){out('#intentMsg',e.message);} };
+$('#createIntent').onclick = async()=>{
+  if(!apiKey){out('#intentMsg','Connect a settlement account first');return;}
+  const order=$('#order').value.trim(), amt=Number($('#amount').value), prod=$('#product').value.trim();
+  if(!order){ out('#intentMsg','Enter an order reference.'); return; }
+  if(!amt || amt<=0){ out('#intentMsg','Enter a valid amount in kobo.'); return; }
+  if(!prod){ out('#intentMsg','Enter a product name.'); return; }
+  try{ const x=await api('/api/v1/payment-intents',{method:'POST',headers:{'X-MONC-API-Key':apiKey},body:JSON.stringify({order_id:order,amount_minor:amt,currency:$('#currency').value,product_name:prod,product_type:$('#productType').value,product_code:$('#productCode').value,checkout_domain:$('#domain').value,initiator_type:$('#initiator').value})}); out('#intentMsg','Payment request created: '+x.payment_intent_id,true); await loadSummary(); $('#intentMsg').scrollIntoView({behavior:'smooth'}); }catch(e){out('#intentMsg',fmtErr(e));}
+};
 renderAmount();
 load();
 </script>

@@ -63,3 +63,6 @@ kbd{border:1px solid var(--line);border-bottom-width:2px;padding:1px 6px;font-si
 code{font-family:"IBM Plex Mono",Consolas,monospace;font-size:12px;background:color-mix(in srgb,var(--ink) 10%,transparent);padding:1px 5px}
 :root{--ok:#3ddc84;--warn:#f2c94c;--err:#ff5c5c}
 [data-theme=light]{--ok:#1a7f37;--warn:#b7791f;--err:#cf222e}
+.hidden{display:none !important}
+.success{color:var(--ok);border:1px solid var(--ok);background:color-mix(in srgb,var(--ok) 10%,transparent);padding:8px 10px;margin-top:8px;font-size:12px}
+.error{color:var(--err);border:1px solid var(--err);background:color-mix(in srgb,var(--err) 10%,transparent);padding:8px 10px;margin-top:8px;font-size:12px}

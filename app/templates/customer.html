@@ -165,12 +165,12 @@ No purchases after 10 PM</textarea><div class="hint">One rule per line. Anything
 <script src="/static/app.js"></script>
 <script>
 let me = null, currentToken = null, pat = null;
-function $(s){return document.querySelector(s)}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function msg(t, ok = false){ const el=$('#authMsg'); el.textContent=t; el.className=ok?'success':'error'; }
-function showLoading(){ $('#overlay').classList.remove('hidden'); }
-function hideLoading(){ $('#overlay').classList.add('hidden'); }
-function showSuccess(){ $('#successOverlay').classList.remove('hidden'); setTimeout(()=>$('#successOverlay').classList.add('hidden'),1500); }
+function msg(t, ok = false){ const el=document.querySelector('#authMsg'); if(!el) return; const txt = Array.isArray(t) ? t.map(x=>x.msg||JSON.stringify(x)).join(' · ') : String(t); el.textContent=txt; el.className=ok?'success':'error'; if(!ok) console.warn('[MONC]', txt); }
+function showLoading(){ const el=document.querySelector('#overlay'); if(el) el.classList.remove('hidden'); }
+function hideLoading(){ const el=document.querySelector('#overlay'); if(el) el.classList.add('hidden'); }
+function showSuccess(){ const el=document.querySelector('#successOverlay'); if(!el) return; el.classList.remove('hidden'); setTimeout(()=>el.classList.add('hidden'),1500); }
+function fmtErr(e){ if(!e) return 'Request failed'; if(typeof e.message==='string') return e.message; if(Array.isArray(e.message)) return e.message.map(x=>x.msg||JSON.stringify(x)).join(' · '); if(e.detail) return Array.isArray(e.detail)?e.detail.map(x=>x.msg||JSON.stringify(x)).join(' · '):String(e.detail); return String(e.message||e); }
 
 async function api(path, opts={}){
   showLoading();
@@ -181,7 +181,11 @@ async function api(path, opts={}){
     const txt = await res.text();
     let data = null;
     try{ data = txt ? JSON.parse(txt) : null }catch(e){ throw {status:res.status, message: 'Invalid JSON response'} }
-    if(!res.ok) throw {status:res.status, message: data && data.detail? data.detail : (data && data.message) || ('HTTP ' + res.status)};
+    if(!res.ok){
+      let d = data && data.detail;
+      let m = Array.isArray(d) ? d.map(x=>x.msg||JSON.stringify(x)).join(' · ') : (d || (data && data.message) || ('HTTP ' + res.status));
+      throw {status:res.status, message: typeof m==='string'?m:JSON.stringify(m)};
+    }
     return data;
   }finally{ hideLoading(); }
 }
@@ -211,8 +215,11 @@ function advanceStep(id){
 function formatCard(v){
   return v.replace(/\D/g,'').slice(0,16).replace(/(\d{4})(?=\d)/g,'$1 ');
 }
-$('#cardNumber').addEventListener('input', function(){ this.value = formatCard(this.value); });
-$('#cardExpiry').addEventListener('input', function(){
+function validateEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+const cardNumberEl = document.querySelector('#cardNumber');
+const cardExpiryEl = document.querySelector('#cardExpiry');
+if(cardNumberEl) cardNumberEl.addEventListener('input', function(){ this.value = formatCard(this.value); });
+if(cardExpiryEl) cardExpiryEl.addEventListener('input', function(){
   let v = this.value.replace(/\D/g,'').slice(0,4);
   if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);
   this.value = v;
@@ -260,31 +267,40 @@ function renderMe(){
 }
 
 $('#register').onclick = async () => {
+  const email=$('#regEmail').value.trim(), name=$('#regName').value.trim(), pass=$('#regPass').value;
+  if(!name || name.length<2){ msg('Enter your name (at least 2 characters).'); return; }
+  if(!validateEmail(email)){ msg('Enter a valid email address.'); return; }
+  if(!pass || pass.length<10){ msg('Password must be at least 10 characters.'); return; }
   try{
-    const x = await api('/api/auth/register', {method:'POST', body:JSON.stringify({email:$('#regEmail').value, display_name:$('#regName').value, password:$('#regPass').value})});
+    const x = await api('/api/auth/register', {method:'POST', body:JSON.stringify({email, display_name:name, password:pass})});
     msg('Account created. Your demo code: ' + x.demo_verification_code, true);
     advanceStep('stepVerify');
     $('#verify').classList.remove('hidden');
     $('#verifyCode').focus();
-  }catch(e){ msg(e.message); }
+  }catch(e){ msg(fmtErr(e)); }
 };
 
 $('#login').onclick = async () => {
+  const email=$('#loginEmail').value.trim(), pass=$('#loginPass').value;
+  if(!validateEmail(email)){ msg('Enter a valid email address.'); return; }
+  if(!pass){ msg('Enter your password.'); return; }
   try{
-    await api('/api/auth/login', {method:'POST', body:JSON.stringify({email:$('#loginEmail').value, password:$('#loginPass').value})});
+    await api('/api/auth/login', {method:'POST', body:JSON.stringify({email, password:pass})});
     await load();
-  }catch(e){ msg(e.message); }
+  }catch(e){ msg(fmtErr(e)); }
 };
 
 $('#verifyBtn').onclick = async () => {
+  const code=$('#verifyCode').value.trim();
+  if(!/^\d{6}$/.test(code)){ msg('Enter the 6-digit verification code.'); return; }
   try{
-    await api('/api/auth/verify', {method:'POST', body:JSON.stringify({code:$('#verifyCode').value})});
+    await api('/api/auth/verify', {method:'POST', body:JSON.stringify({code})});
     await load();
-  }catch(e){ msg(e.message); }
+  }catch(e){ msg(fmtErr(e)); }
 };
 
 $('#logoutBtn').onclick = async ()=>{
-  try{ await api('/api/auth/logout', {method:'POST'}); location.reload(); }catch(e){ alert('Sign out failed: '+e.message); }
+  try{ await api('/api/auth/logout', {method:'POST'}); location.reload(); }catch(e){ alert('Sign out failed: '+fmtErr(e)); }
 };
 
 $('#newInstrument').onclick = () => {
@@ -333,7 +349,7 @@ $('#issueBtn').onclick = async () => {
     showSuccess();
     advanceStep('stepSpend');
     $('#tokenPanel').scrollIntoView({behavior:'smooth'});
-  }catch(e){ $('#issueResult').textContent=e.message; $('#issueResult').className='error'; }
+  }catch(e){ $('#issueResult').textContent=fmtErr(e); $('#issueResult').className='error'; }
 };
 
 $('#copyToken').onclick = async () => {
@@ -343,22 +359,24 @@ $('#copyToken').onclick = async () => {
 
 $('#downloadToken').onclick = () => download('monc-token.json', currentToken);
 $('#transferBtn').onclick = async () => {
+  const email=$('#recipient').value.trim();
+  if(!validateEmail(email)){ $('#transferMsg').textContent='Enter a valid recipient email.'; $('#transferMsg').className='error'; return; }
   try{
     const x = tokenDecode(currentToken);
-    const r = await api('/api/transfers', {method:'POST', body:JSON.stringify({locator:x.locator, recipient_email:$('#recipient').value})});
+    const r = await api('/api/transfers', {method:'POST', body:JSON.stringify({locator:x.locator, recipient_email:email})});
     $('#transferMsg').textContent = 'Transfer requested: ' + r.transfer_id;
     $('#transferMsg').className = 'success';
     showSuccess();
-  }catch(e){ $('#transferMsg').textContent=e.message; $('#transferMsg').className='error'; }
+  }catch(e){ $('#transferMsg').textContent=fmtErr(e); $('#transferMsg').className='error'; }
 };
 
-$('#incomingList').addEventListener('click',e=>{const button=e.target.closest('.accept-transfer');if(button)accept(button.dataset.transferId);});
+const incomingEl = document.querySelector('#incomingList'); if(incomingEl) incomingEl.addEventListener('click',e=>{const button=e.target.closest('.accept-transfer');if(button)accept(button.dataset.transferId);});
 async function accept(id){
   try{
     await api('/api/transfers/accept', {method:'POST', body:JSON.stringify({transfer_id:id})});
     await load();
     showSuccess();
-  }catch(e){ alert(e.message); }
+  }catch(e){ alert(fmtErr(e)); }
 }
 load();
 </script>
