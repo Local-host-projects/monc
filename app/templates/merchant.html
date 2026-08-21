@@ -104,26 +104,6 @@
       </div>
     </section>
 
-    <section id="scanPanel" class="panel">
-      <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg> Scan customer QR</b><span>CAMERA · OR UPLOAD</span></div>
-      <div class="pb">
-        <div class="callout"><b>Scan the token QR</b>Let the customer show their QR (from <i>Your account → Your card is ready</i>). Scan it here to see the instrument and prefill a payment — the private key never leaves their device.</div>
-        <div class="scanner-wrap">
-          <div class="scanner" id="scannerBox">
-            <video id="scanVideo" playsinline muted></video>
-            <div class="scanner-overlay"></div>
-            <div class="scanner-hint">Camera off</div>
-          </div>
-        </div>
-        <div class="actions" style="margin-top:12px">
-          <button class="btn primary" id="startScan" style="display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg> START CAMERA</button>
-          <button class="btn hidden" id="stopScan">STOP</button>
-          <label class="btn" style="cursor:pointer"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> UPLOAD IMAGE <input type="file" id="scanFile" accept="image/*" style="display:none"></label>
-        </div>
-        <div id="scanResult" class="hidden" style="margin-top:12px"></div>
-      </div>
-    </section>
-
     <section class="panel">
       <div class="ph"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg> Create a payment request</b><span>LOCKED AMOUNT · PRODUCT · DOMAIN · EXPIRY</span></div>
       <div class="pb">
@@ -275,47 +255,6 @@ document.querySelector('#createIntent').onclick = async()=>{
   try{ const x=await api('/api/v1/payment-intents',{method:'POST',headers:{'X-MONC-API-Key':apiKey},body:JSON.stringify({order_id:order,amount_minor:amt,currency:document.querySelector('#currency').value,product_name:prod,product_type:document.querySelector('#productType').value,product_code:document.querySelector('#productCode').value,checkout_domain:document.querySelector('#domain').value,initiator_type:document.querySelector('#initiator').value})}); out('#intentMsg','Payment request created: '+x.payment_intent_id,true); await loadSummary(); document.querySelector('#intentMsg').scrollIntoView({behavior:'smooth'}); }catch(e){out('#intentMsg',fmtErr(e));}
 };
 renderAmount();
-// ---- QR Scanner for merchant ----
-let stopScan=null;
-function showScanResult(tokenStr){
-  const el=document.getElementById('scanResult');
-  el.classList.remove('hidden');
-  try{
-    const data=tokenDecode(tokenStr);
-    el.innerHTML=`<div class="callout ok"><b>Token scanned</b>Instrument ${esc(data.instrument_id.slice(0,8))} · locator ${esc(data.locator.slice(0,12))}…</div><div class="tokenbox" style="margin-top:8px">${esc(tokenStr.slice(0,120))}…</div><div class="actions" style="margin-top:8px"><button class="btn small" onclick="navigator.clipboard.writeText('${tokenStr.replace(/'/g,"\\'")}')">COPY FULL TOKEN</button></div>`;
-    el.scrollIntoView({behavior:'smooth'});
-  }catch(e){
-    el.innerHTML=`<div class="callout err"><b>Not a MONC token</b>${esc(e.message)}</div>`;
-  }
-}
-document.getElementById('startScan').onclick = async()=>{
-  const video=document.getElementById('scanVideo');
-  const hint=document.querySelector('.scanner-hint');
-  try{
-    hint.textContent='Scanning… point at QR';
-    document.getElementById('stopScan').classList.remove('hidden');
-    stopScan=await startScanner(video, (result, stop)=>{
-      hint.textContent='Got it!';
-      showScanResult(result);
-      stop(); document.getElementById('stopScan').classList.add('hidden'); hint.textContent='Camera off';
-    });
-  }catch(e){ out('#scanResult', fmtErr(e)); hint.textContent='Camera failed: '+fmtErr(e); }
-};
-document.getElementById('stopScan').onclick = ()=>{ if(stopScan) stopScan(); stopScan=null; document.getElementById('stopScan').classList.add('hidden'); document.querySelector('.scanner-hint').textContent='Camera off'; };
-document.getElementById('scanFile').addEventListener('change', async (e)=>{
-  const file=e.target.files[0]; if(!file) return;
-  try{
-    const bitmap=await createImageBitmap(file);
-    if('BarcodeDetector' in window){
-      const detector=new BarcodeDetector({formats:['qr_code']});
-      const codes=await detector.detect(bitmap);
-      if(codes.length) showScanResult(codes[0].rawValue);
-      else out('#scanResult','No QR found in image');
-    } else {
-      out('#scanResult','BarcodeDetector not supported — paste token manually');
-    }
-  }catch(err){ out('#scanResult', fmtErr(err)); }
-});
 load();
 </script>
 </body>

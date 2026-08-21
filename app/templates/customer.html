@@ -248,17 +248,49 @@ function renderProfile(){
 function renderTokenHistory(){
   const wrap=document.getElementById('tokenHistory');
   const tokens=loadTokensLocal(me&&me.user&&me.user.id);
-  if(!tokens.length){ wrap.innerHTML=''; return; }
-  wrap.innerHTML='<div style="font-size:10px;letter-spacing:.12em;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Past tokens on this device (tap to view)</div>' + tokens.map(t=>`<div class="token-card" data-id="${esc(t.instrument_id)}"><div class="token-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div><div class="token-meta"><b>${esc(t.alias||'MONC CARD')} · ${esc(t.instrument_id.slice(0,8))}</b><small>${new Date(t.created_at).toLocaleString()} · ${esc((t.rules||[]).join(' · ').slice(0,60))}</small></div><span class="pill ${t.status||'idle'}">${esc(t.status||'stored')}</span></div>`).join('');
+  if(!tokens.length){ wrap.innerHTML='<div class="empty">No past tokens on this device — create a card to see it here. Tokens stay valid until cashed out.</div>'; return; }
+  wrap.innerHTML='<div style="font-size:10px;letter-spacing:.12em;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Past MONCs on this device — tap any to view QR & details</div>' + tokens.map(t=>`<div class="token-card" data-id="${esc(t.instrument_id)}"><div class="token-icon" style="${t.qr?'padding:0;overflow:hidden':''}">${t.qr?`<img src="${esc(t.qr)}" style="width:40px;height:40px;object-fit:cover">`:`<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`}</div><div class="token-meta"><b>${esc(t.alias||'MONC CARD')} · ${esc(t.instrument_id.slice(0,8))}</b><small>${new Date(t.created_at).toLocaleString()} · ${esc((t.rules||[]).join(' · ').slice(0,60))}</small></div><span class="pill ${t.status||'idle'}">${esc(t.status||'stored')}</span></div>`).join('');
   wrap.querySelectorAll('.token-card').forEach(el=>el.addEventListener('click',()=>showTokenDetail(el.dataset.id)));
 }
 function showTokenDetail(instrument_id){
   const t=getTokenLocal(me&&me.user&&me.user.id, instrument_id);
   const detail=document.getElementById('tokenDetail');
   if(!t){ detail.classList.add('hidden'); return; }
+  // if QR missing (old token), fetch and persist then re-render
+  if(!t.qr){
+    detail.classList.remove('hidden');
+    detail.innerHTML=`<div style="padding:12px;text-align:center;color:var(--muted)">Loading QR…</div>`;
+    api('/token_qr_dataurl?token='+encodeURIComponent(t.token)).then(r=>{
+      t.qr=r.data_url; saveTokenLocal(me.user.id, t); showTokenDetail(instrument_id); renderTokenHistory();
+    }).catch(()=>{});
+    return;
+  }
   const serverMeta=me.instruments.find(x=>x.id===instrument_id);
+  const serverStatus=serverMeta?serverMeta.status:'unknown (not on server — local only)';
   detail.classList.remove('hidden');
-  detail.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>${esc(t.alias)}</b><button class="btn small" onclick="document.getElementById('tokenDetail').classList.add('hidden')">CLOSE</button></div><div class="tokenbox" style="margin-bottom:8px">${esc(t.token)}</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" onclick="navigator.clipboard.writeText('${t.token.replace(/'/g,"\\'")}')">COPY TOKEN</button><button class="btn small" onclick="download('monc-token-'+'${t.instrument_id.slice(0,8)}'+'.json','${t.token.replace(/'/g,"\\'")}')">DOWNLOAD JSON</button></div><div class="hint" style="margin-top:8px">Status on server: ${esc(serverMeta?serverMeta.status:'unknown')} · Token remains valid until cashed out or explicitly transferred.</div>`;
+  detail.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="display:flex;align-items:center;gap:8px"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg> ${esc(t.alias)}</b><button class="btn small" onclick="document.getElementById('tokenDetail').classList.add('hidden')">CLOSE</button></div>
+  <div class="grid g2" style="align-items:start;gap:16px">
+    <div>
+      <div style="font-size:10px;letter-spacing:.1em;color:var(--muted);margin-bottom:4px">TOKEN · TAP TO COPY</div>
+      <div class="tokenbox" style="margin-bottom:10px;cursor:pointer" onclick="navigator.clipboard.writeText('${t.token.replace(/'/g,"\\'")}');this.nextElementSibling.textContent='COPIED';setTimeout(()=>this.nextElementSibling.textContent='',1200)">${esc(t.token)}</div><div style="font-size:10px;color:var(--ok);height:14px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn small" onclick="navigator.clipboard.writeText('${t.token.replace(/'/g,"\\'")}')">COPY TOKEN</button>
+        <button class="btn small" onclick="download('monc-token-'+'${t.instrument_id.slice(0,8)}'+'.json','${t.token.replace(/'/g,"\\'")}')">DOWNLOAD JSON</button>
+        <button class="btn small" onclick="downloadQR('${t.qr}','monc-qr-${t.instrument_id.slice(0,8)}.png')">DOWNLOAD QR</button>
+        <button class="btn small" onclick="currentToken='${t.token.replace(/'/g,"\\'")}';document.querySelector('#tokenText').textContent='${t.token.replace(/'/g,"\\'")}';document.querySelector('#tokenQR').src='${t.qr}';document.querySelector('#tokenQR').dataset.dataurl='${t.qr}';document.querySelector('#tokenPanel').classList.remove('hidden');document.querySelector('#tokenPanel').scrollIntoView({behavior:'smooth'})">OPEN IN PANEL</button>
+      </div>
+      <div style="margin-top:12px;font-size:11px;line-height:1.6;color:var(--muted)">
+        <div><b style="color:var(--ink)">Created</b> ${new Date(t.created_at).toLocaleString()}</div>
+        <div><b style="color:var(--ink)">Instrument</b> ${esc(t.instrument_id)}</div>
+        <div><b style="color:var(--ink)">Status</b> <span class="pill ${esc(serverStatus==='armed'?'ok':serverStatus==='transfer_pending'?'warn':'idle')}">${esc(serverStatus)}</span> <span class="hint">Remains valid until cashed out</span></div>
+        <div style="margin-top:6px"><b style="color:var(--ink)">Rules</b><br>${(t.rules||[]).map(r=>esc(r)).join('<br>')||'—'}</div>
+      </div>
+    </div>
+    <div style="text-align:center">
+      <img src="${esc(t.qr)}" class="qrcode" style="max-width:200px;margin:0 auto" alt="QR for ${esc(t.alias)}"><div class="hint">Scan from checkout to authorize</div>
+      <div style="margin-top:8px"><button class="btn small" onclick="downloadQR('${t.qr}','monc-qr-${t.instrument_id.slice(0,8)}.png')" style="display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> DOWNLOAD QR</button></div>
+    </div>
+  </div>`;
   detail.scrollIntoView({behavior:'smooth'});
 }
 async function load(){
@@ -382,14 +414,14 @@ document.querySelector('#issueBtn').onclick = async () => {
     const saved = await api('/api/instruments', {method:'POST', body:JSON.stringify({
       instrument_id:id, alias:aliasVal, locator,
       encrypted_server_half:JSON.stringify(serverBox), public_key_jwk:jwk, rules})});
-    // persist token locally - remains valid until cashed out
-    saveTokenLocal(me.user.id, {instrument_id:id, alias:aliasVal, token, locator, rules, created_at:new Date().toISOString(), status:'armed'});
     currentToken = token;
     document.querySelector('#tokenPanel').classList.remove('hidden');
     document.querySelector('#tokenText').textContent = token;
     const qr = await api('/token_qr_dataurl?token=' + encodeURIComponent(token));
     document.querySelector('#tokenQR').src = qr.data_url;
     document.querySelector('#tokenQR').dataset.dataurl = qr.data_url;
+    // persist token + QR locally - remains valid until cashed out, viewable from profile
+    saveTokenLocal(me.user.id, {instrument_id:id, alias:aliasVal, token, locator, rules, created_at:new Date().toISOString(), status:'armed', qr: qr.data_url});
     document.querySelector('#issueResult').textContent = 'Card created · encrypted locally · ' + saved.instrument_id;
     document.querySelector('#issueResult').className = 'success';
     showSuccess();

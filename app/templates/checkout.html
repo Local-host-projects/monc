@@ -49,6 +49,7 @@
           <label class="btn small" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px"><svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> UPLOAD QR <input type="file" id="scanFile" accept="image/*" style="display:none"></label>
           <button class="btn small" id="pasteTokenBtn" type="button">PASTE</button>
         </div>
+        <div id="scanInfo" class="hidden" style="margin-top:10px"></div>
       </div>
       <div id="scanWrap" class="hidden" style="margin-top:12px">
         <div class="scanner-wrap"><div class="scanner"><video id="scanVideo" playsinline muted></video><div class="scanner-overlay"></div><div class="scanner-hint">Point camera at QR</div></div></div>
@@ -253,8 +254,21 @@ $('#refreshStatus').onclick = async () => {
   }catch(e){ $('#final').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; }
 };
 
-// ---- QR scan for token ----
+// ---- QR scan for token - extracts info on final transaction page ----
 let stopScan=null;
+function showScanExtracted(tokenStr){
+  const info=document.getElementById('scanInfo');
+  try{
+    const data=tokenDecode(tokenStr);
+    info.className='callout ok';
+    info.innerHTML=`<b>QR scanned — token extracted</b>Instrument <code>${esc(data.instrument_id.slice(0,8))}…${esc(data.instrument_id.slice(-4))}</code> · locator ${esc(data.locator.slice(0,10))}…<br><small style="color:var(--muted)">Token is valid MONC1 format. Draw your pattern and approve — the private key never leaves this device.</small>`;
+    info.classList.remove('hidden');
+  }catch(e){
+    info.className='callout err';
+    info.innerHTML=`<b>Not a MONC token</b>${esc(e.message)}`;
+    info.classList.remove('hidden');
+  }
+}
 document.getElementById('scanTokenBtn').onclick = async()=>{
   const wrap=document.getElementById('scanWrap');
   const video=document.getElementById('scanVideo');
@@ -262,6 +276,7 @@ document.getElementById('scanTokenBtn').onclick = async()=>{
   try{
     stopScan=await startScanner(video, (result, stop)=>{
       document.getElementById('token').value=result;
+      showScanExtracted(result);
       wrap.classList.add('hidden');
       stop(); stopScan=null;
     });
@@ -275,14 +290,21 @@ document.getElementById('scanFile').addEventListener('change', async (e)=>{
     if('BarcodeDetector' in window){
       const detector=new BarcodeDetector({formats:['qr_code']});
       const codes=await detector.detect(bitmap);
-      if(codes.length) document.getElementById('token').value=codes[0].rawValue;
-      else alert('No QR found');
+      if(codes.length){
+        const v=codes[0].rawValue;
+        document.getElementById('token').value=v;
+        showScanExtracted(v);
+      } else alert('No QR found in image');
     } else alert('Scanner not supported — paste manually');
   }catch(err){ alert(err.message); }
 });
 document.getElementById('pasteTokenBtn').onclick = async()=>{
-  try{ const t=await navigator.clipboard.readText(); document.getElementById('token').value=t; }catch(e){ alert('Clipboard not accessible'); }
+  try{ const t=await navigator.clipboard.readText(); document.getElementById('token').value=t; if(t) showScanExtracted(t); }catch(e){ alert('Clipboard not accessible'); }
 };
+document.getElementById('token').addEventListener('input', ()=>{
+  const v=document.getElementById('token').value.trim();
+  if(v.startsWith('MONC1.')) showScanExtracted(v);
+});
 
 load();
 </script>
